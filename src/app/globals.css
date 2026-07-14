@@ -1,0 +1,233 @@
+@tailwind base;
+
+/* ============================================
+   Global Border-Radius Reset — Sharp UI
+   ============================================ */
+*, *::before, *::after {
+  border-radius: 0 !important;
+}
+@tailwind components;
+@tailwind utilities;
+
+/* ============================================
+   CSS Variables — Light Theme
+   ============================================ */
+:root {
+  --bg:            #f4f6fb;
+  --bg-surface:    #ffffff;
+  --bg-elevated:   #f9fafb;
+  --text:          #111827;
+  --text-muted:    #6b7280;
+  --text-subtle:   #9ca3af;
+  --border:        #e5e7eb;
+  --primary:       #6366f1;
+  --primary-hover: #4f46e5;
+
+  /* Dropdown */
+  --dropdown-bg:       #ffffff;
+  --dropdown-border:   #e5e7eb;
+  --dropdown-text:     #111827;
+  --dropdown-muted:    #6b7280;
+  --dropdown-hover:    #f3f4f6;
+  --dropdown-separator:#e5e7eb;
+}
+
+/* ============================================
+   Dark Theme — Deep Black
+   ============================================ */
+html.dark {
+  --bg:            #09090b;
+  --bg-surface:    #18181b;
+  --bg-elevated:   #27272a;
+  --text:          #fafafa;
+  --text-muted:    #a1a1aa;
+  --text-subtle:   #71717a;
+  --border:        #3f3f46;
+  --primary:       #818cf8;
+  --primary-hover: #6366f1;
+
+  /* Dropdown */
+  --dropdown-bg:       #18181b;
+  --dropdown-border:   #3f3f46;
+  --dropdown-text:     #fafafa;
+  --dropdown-muted:    #a1a1aa;
+  --dropdown-hover:    #27272a;
+  --dropdown-separator:#3f3f46;
+}
+
+/* ============================================
+   Base Styles
+   ============================================ */
+html, body {
+  background-color: var(--bg);
+  color: var(--text);
+}
+
+body {
+  transition: background-color 0.25s ease, color 0.25s ease;
+}
+
+/* ============================================
+   Dark Mode Overrides — Core Layout
+   ============================================ */
+html.dark .bg-white {
+  background-color: var(--bg-surface) !important;
+}
+
+html.dark .bg-gray-50 {
+  background-color: var(--bg-elevated) !important;
+}
+
+html.dark .bg-gray-100 {
+  background-color: #27272a !important;
+}
+
+html.dark .bg-gray-200 {
+  background-color: #3f3f46 !important;
+}
+
+html.dark aside,
+html.dark header {
+  background-color: var(--bg-surface) !important;
+  border-color: var(--border) !important;
+}
+
+html.dark main {
+  background-color: var(--bg) !important;
+}
+
+/* Borders */
+html.dark .border,
+html.dark .border-b,
+html.dark .border-r,
+html.dark .border-t,
+html.dark .border-l,
+html.dark [class*="border-gray"] {
+  border-color: var(--border) !important;
+}
+
+/* Text */
+html.dark .text-gray-900,
+html.dark .text-gray-800,
+html.dark .text-gray-700 {
+  color: var(--text) !important;
+}
+
+html.dark .text-gray-600,
+html.dark .text-gray-500 {
+  color: var(--text-muted) !important;
+}
+
+html.dark .text-gray-400 {
+  color: var(--text-subtle) !important;
+}
+
+/* Cards */
+html.dark .rounded-lg,
+html.dark [class*="rounded-"] {
+  border-color: var(--border);
+}
+
+html.dark input,
+html.dark textarea,
+html.dark select {
+  background-color: var(--bg-elevated) !important;
+  border-color: var(--border) !important;
+  color: var(--text) !important;
+}
+
+html.dark input::placeholder,
+html.dark textarea::placeholder {
+  color: var(--text-subtle) !important;
+}
+
+/* Tabs */
+html.dark [role="tablist"],
+html.dark .tabs-list {
+  background-color: var(--bg-elevated) !important;
+}
+
+html.dark [role="tab"] {
+  color: var(--text-muted) !important;
+}
+
+html.dark [role="tab"][data-state="active"],
+html.dark [aria-selected="true"] {
+  background-color: var(--bg-surface) !important;
+  color: var(--text) !important;
+}
+
+/* Badges */
+html.dark .border-gray-200.text-gray-600 {
+  border-color: var(--border) !important;
+  color: var(--text-muted) !important;
+}
+
+/* Hover states */
+html.dark .hover\:bg-gray-50:hover,
+html.dark .hover\:bg-gray-100:hover {
+  background-color: var(--bg-elevated) !important;
+}
+
+/* Alert / notification boxes */
+html.dark .bg-blue-50   { background-color: rgba(99, 102, 241, 0.1) !important; }
+html.dark .bg-green-50  { background-color: rgba(34, 197, 94, 0.1) !important;  }
+html.dark .bg-red-50    { background-color: rgba(239, 68, 68, 0.1) !important;  }
+html.dark .bg-yellow-50 { background-color: rgba(234, 179, 8, 0.1) !important;  }
+
+/* ============================================
+   Dropdown Menu — Light & Dark via CSS vars
+   ============================================ */
+.dropdown-menu-content {
+  background-color: var(--dropdown-bg);
+  border: 1px solid var(--dropdown-border);
+  color: var(--dropdown-text);
+  padding: 0.375rem;
+  backdrop-filter: blur(8px);
+}
+
+.dropdown-menu-label {
+  color: var(--dropdown-muted);
+  padding: 0.5rem 0.75rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.dropdown-menu-separator {
+  background-color: var(--dropdown-separator);
+  height: 1px;
+  margin: 0.25rem -0.375rem;
+}
+
+.dropdown-menu-item {
+  color: var(--dropdown-text);
+  border-radius: 0.5rem;
+}
+
+.dropdown-menu-item:hover {
+  background-color: var(--dropdown-hover);
+  color: var(--dropdown-text);
+}
+
+/* ============================================
+   Compact Mode
+   ============================================ */
+html.compact .space-y-6 > * + * { margin-top: 0.75rem !important; }
+html.compact .space-y-4 > * + * { margin-top: 0.5rem !important; }
+html.compact .p-6   { padding: 0.75rem !important; }
+html.compact .py-6  { padding-top: 0.75rem !important; padding-bottom: 0.75rem !important; }
+html.compact main   { padding: 1rem !important; }
+
+/* ============================================
+   Smooth transitions for theme switch
+   ============================================ */
+*,
+*::before,
+*::after {
+  transition:
+    background-color 0.2s ease,
+    border-color 0.2s ease,
+    color 0.15s ease;
+}
