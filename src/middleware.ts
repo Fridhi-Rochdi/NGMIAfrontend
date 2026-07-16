@@ -3,24 +3,57 @@ import type { NextRequest } from 'next/server';
 
 const publicPaths = ['/auth/login', '/auth/register'];
 
-export function middleware(request: NextRequest) {
-  const { pathname } = request.nextUrl;
+// Base domain for generated websites
+const BASE_DOMAIN = process.env.NEXT_PUBLIC_BASE_DOMAIN || 'marketingai.dev';
+const LOCAL_BASE_DOMAIN = 'localhost';
 
-  // Allow public paths
+export function middleware(request: NextRequest) {
+  const { pathname, hostname } = request.nextUrl;
+
+  // --- Subdomain detection for generated websites ---
+  // On localhost, subdomains look like: subdomain.localhost:3000
+  // In production: subdomain.maketingai.dev
+  const isLocal = hostname === LOCAL_BASE_DOMAIN || hostname.startsWith(`${LOCAL_BASE_DOMAIN}:`);
+  const isProd = hostname === BASE_DOMAIN || hostname.endsWith(`.${BASE_DOMAIN}`);
+
+  let subdomain: string | null = null;
+
+  if (isLocal) {
+    const parts = hostname.split('.');
+    if (parts.length > 1 && parts[0] !== 'www') {
+      subdomain = parts[0];
+    }
+  } else if (isProd && hostname !== BASE_DOMAIN) {
+    const parts = hostname.split('.');
+    if (parts.length > 1 && parts[0] !== 'www') {
+      subdomain = parts[0];
+    }
+  }
+
+  // If subdomain is detected, rewrite to the website viewer page
+  if (subdomain) {
+    const url = request.nextUrl.clone();
+    url.pathname = `/site/${subdomain}`;
+    url.search = request.nextUrl.search;
+    return NextResponse.rewrite(url);
+  }
+
+  // --- Auth middleware for the main app ---
   if (publicPaths.some((path) => pathname.startsWith(path))) {
     return NextResponse.next();
   }
 
-  // Allow root and static assets
   if (pathname === '/' || pathname.startsWith('/_next') || pathname.startsWith('/favicon')) {
     return NextResponse.next();
   }
 
-  // Check for auth token in cookies or localStorage (via cookie workaround)
-  // Note: localStorage is not available in middleware, so we use a cookie approach
+  // Allow /site/:subdomain route (public, no auth needed)
+  if (pathname.startsWith('/site/')) {
+    return NextResponse.next();
+  }
+
   const token = request.cookies.get('token')?.value;
 
-  // If no token and trying to access protected route, redirect to login
   if (!token && !publicPaths.some((path) => pathname.startsWith(path))) {
     const loginUrl = new URL('/auth/login', request.url);
     loginUrl.searchParams.set('callbackUrl', pathname);

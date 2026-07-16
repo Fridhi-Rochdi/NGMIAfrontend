@@ -1,6 +1,9 @@
 export const APP_NAME = 'NextGen MarketingAI';
 export const APP_DESCRIPTION = 'AI-powered marketing platform for SMEs';
 
+export const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+export const BASE_DOMAIN = process.env.NEXT_PUBLIC_BASE_DOMAIN || 'marketingai.dev';
+
 export const NAVIGATION = [
   { name: 'Dashboard', href: '/dashboard', icon: 'Home' },
   { name: 'Content', href: '/content', icon: 'FileText' },
@@ -21,7 +24,7 @@ export const PLATFORMS = [
 export const TONES = [
   { value: 'professional', label: 'Professional' },
   { value: 'casual', label: 'Casual' },
-  { value: 'humorous programmatically', label: 'Humorous' },
+  { value: 'humorous', label: 'Humorous' },
   { value: 'inspirational', label: 'Inspirational' },
 ] as const;
 

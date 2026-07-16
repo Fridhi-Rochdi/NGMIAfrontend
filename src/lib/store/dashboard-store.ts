@@ -1,7 +1,7 @@
 "use client";
 
 import { create } from 'zustand';
-import { get } from '@/lib/api';
+import { get as apiGet } from '@/lib/api';
 
 export interface DashboardStats {
   totalPosts: number;
@@ -74,9 +74,9 @@ export const useDashboardStore = create<DashboardStore>((set, get) => ({
     try {
       // Use the dedicated tenant stats endpoint
       const [statsRes, postsRes, accountsRes] = await Promise.all([
-        get<any>('/tenant/stats'),
-        get<any>('/content'),
-        get<any>('/social/accounts'),
+        apiGet<any>('/tenant/stats'),
+        apiGet<any>('/content'),
+        apiGet<any>('/social/accounts'),
       ]);
 
       // Backend wraps responses in { data: { data: ... } } via TransformInterceptor

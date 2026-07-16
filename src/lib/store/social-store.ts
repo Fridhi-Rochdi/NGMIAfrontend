@@ -5,6 +5,12 @@ import { persist } from 'zustand/middleware';
 import { get, post, put, del } from '@/lib/api';
 import type { SocialAccountItem, SocialPostItem } from '@/types';
 
+const parseHashtags = (val: any): string[] => {
+  if (Array.isArray(val)) return val;
+  if (typeof val === 'string' && val.trim() !== '') return val.split(',').map((v: string) => v.trim());
+  return [];
+};
+
 export interface SocialAccount {
   id: string;
   platform: string;
@@ -72,7 +78,7 @@ export const useSocialStore = create<SocialStore>()(
             scheduledDate: (response.data as any).scheduledAt || '',
             status: (response.data as any).status || 'draft',
             mediaUrls: (response.data as any).mediaUrls || [],
-            hashtags: (response.data as any).hashtags || [],
+            hashtags: parseHashtags((response.data as any).hashtags),
           };
           set((state) => ({
             posts: [mapped, ...state.posts],
@@ -95,7 +101,7 @@ export const useSocialStore = create<SocialStore>()(
             scheduledDate: p.scheduledAt || '',
             status: p.status || 'draft',
             mediaUrls: p.mediaUrls || [],
-            hashtags: p.hashtags || [],
+            hashtags: parseHashtags(p.hashtags),
           }));
           set({ posts: mapped, loading: false });
         } catch (error) {
@@ -172,7 +178,7 @@ export const useSocialStore = create<SocialStore>()(
             scheduledDate: response.data.scheduledAt || data.scheduledDate,
             status: response.data.status || data.status,
             mediaUrls: response.data.mediaUrls || data.mediaUrls,
-            hashtags: response.data.hashtags || data.hashtags,
+            hashtags: parseHashtags(response.data.hashtags || data.hashtags),
           };
           set((state) => ({
             posts: [mapped, ...state.posts],
