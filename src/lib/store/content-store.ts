@@ -83,8 +83,12 @@ export const useContentStore = create<ContentStore>()(
             keywords: content.hashtags ? content.hashtags.split(',').map((k) => k.trim()) : [],
           });
 
+          // Extract the actual item from the nested response
+          // @ts-ignore
+          const newItem = response.data?.data || response.data;
+
           set((state) => ({
-            generatedContents: response.data ? [response.data, ...state.generatedContents].slice(0, 50) : state.generatedContents,
+            generatedContents: newItem ? [newItem, ...state.generatedContents].slice(0, 50) : state.generatedContents,
             isGenerating: false,
           }));
         } catch (error) {
@@ -97,8 +101,14 @@ export const useContentStore = create<ContentStore>()(
         set({ loading: true });
         try {
           const response = await apiGet<ContentItem[]>('/content');
-          // Ensure we always have an array even if API returns null
-          const items = Array.isArray(response.data) ? response.data : [];
+          
+          // Extract items array from the nested response
+          // @ts-ignore
+          let items = response.data?.data || response.data;
+          if (!Array.isArray(items)) {
+            items = [];
+          }
+
           set({ generatedContents: items, loading: false });
         } catch (error) {
           set({ loading: false });

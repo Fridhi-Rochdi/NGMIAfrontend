@@ -68,7 +68,11 @@ export default function QrCodePage() {
       }
 
       const response = await api.post(endpoint, payload);
-      setQrCodeImage(response.data.image);
+      if (response.data.success && response.data.data) {
+        setQrCodeImage(response.data.data.base64);
+      } else {
+        throw new Error(response.data.error || 'Erreur lors de la génération');
+      }
     } catch (err) {
       setError('Erreur lors de la génération du code QR');
       console.error(err);

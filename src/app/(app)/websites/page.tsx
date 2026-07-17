@@ -42,6 +42,7 @@ export default function WebsitesPage() {
     previewUrl: string;
   } | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [previewMode, setPreviewMode] = useState<'desktop' | 'mobile'>('desktop');
 
   // Form state
   const [businessName, setBusinessName] = useState('');
@@ -437,14 +438,58 @@ export default function WebsitesPage() {
               </div>
             </div>
 
-            {/* Preview */}
-            <div className="border-2 border-dashed border-gray-300 rounded-xl p-4 mb-6">
-              <div className="bg-gray-100 rounded-lg p-4 overflow-auto max-h-96">
-                <iframe
-                  srcDoc={generatedSite.html}
-                  className="w-full h-80 bg-white rounded border"
-                  title="Website Preview"
-                />
+            {/* Live Device Simulator */}
+            <div className="mb-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-sm font-semibold text-gray-700">Aperçu en direct</h3>
+                <div className="flex p-1 bg-gray-100 rounded-lg">
+                  <button
+                    onClick={() => setPreviewMode('desktop')}
+                    className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors flex items-center gap-2 ${previewMode === 'desktop' ? 'bg-white shadow-sm text-blue-700' : 'text-gray-500 hover:text-gray-700'}`}
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
+                    Desktop
+                  </button>
+                  <button
+                    onClick={() => setPreviewMode('mobile')}
+                    className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors flex items-center gap-2 ${previewMode === 'mobile' ? 'bg-white shadow-sm text-blue-700' : 'text-gray-500 hover:text-gray-700'}`}
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
+                    Mobile
+                  </button>
+                </div>
+              </div>
+
+              <div className="bg-gray-200 rounded-xl p-4 flex justify-center overflow-hidden">
+                {/* Browser Mockup Window */}
+                <div 
+                  className={`bg-white rounded-lg shadow-xl overflow-hidden transition-all duration-500 ease-in-out border border-gray-300 flex flex-col ${
+                    previewMode === 'mobile' ? 'w-[375px] h-[750px]' : 'w-full h-[600px]'
+                  }`}
+                >
+                  {/* Browser Header */}
+                  <div className="bg-gray-100 border-b border-gray-200 px-4 py-3 flex items-center gap-4">
+                    <div className="flex gap-2">
+                      <div className="w-3 h-3 rounded-full bg-red-400"></div>
+                      <div className="w-3 h-3 rounded-full bg-yellow-400"></div>
+                      <div className="w-3 h-3 rounded-full bg-green-400"></div>
+                    </div>
+                    <div className="flex-1 bg-white rounded-md border border-gray-200 px-3 py-1 text-xs text-center text-gray-500 font-mono truncate">
+                      {previewMode === 'mobile' ? 'Mobile View - ' : ''}https://{generatedSite.subdomain}.marketingai.dev
+                    </div>
+                    {previewMode === 'mobile' && (
+                      <div className="w-8"></div> /* Spacer for balance */
+                    )}
+                  </div>
+                  {/* Browser Body (Iframe) */}
+                  <div className="flex-1 w-full relative bg-gray-50">
+                    <iframe
+                      srcDoc={generatedSite.html}
+                      className="absolute inset-0 w-full h-full border-0"
+                      title="Website Preview"
+                    />
+                  </div>
+                </div>
               </div>
             </div>
 
