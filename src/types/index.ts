@@ -51,6 +51,7 @@ export interface BrandItem {
   id: string;
   name: string;
   slug?: string;
+  logo?: string;
   tagline?: string;
   description?: string;
   primaryColor?: string;

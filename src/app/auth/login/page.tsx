@@ -77,7 +77,7 @@ export default function LoginPage() {
           <Player
             autoplay
             loop
-            src="https://lottie.host/5a70dbaf-d477-4cf0-8806-03f1ebcd5cf1/r21rY7b43N.json"
+            src="/lottie/login.json"
             style={{ height: '400px', width: '400px' }}
           />
         </div>

@@ -10,6 +10,18 @@ import { Alert, AlertDescription } from '@/components/ui/Alert';
 import { SparklesIcon, PaletteIcon, FontIcon, TextIcon, CheckIcon } from '@/components/icons';
 import { useBrandStore } from '@/lib/store/brand-store';
 
+function getTenantSlug(): string | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = localStorage.getItem('user');
+    if (!raw) return null;
+    const user = JSON.parse(raw);
+    return user?.tenant?.slug ?? null;
+  } catch {
+    return null;
+  }
+}
+
 const FONT_OPTIONS = [
   "Inter, sans-serif",
   "Roboto, sans-serif",
@@ -101,14 +113,16 @@ function FontPicker({ value, onChange, options }: { value: string, onChange: (va
 }
 
 export default function BrandingPage() {
-  const { brand, updateBrand, generateBranding, loading } = useBrandStore();
+  const { brand, updateBrand, generateBranding, savedBrands, fetchBrands, deleteBrand, deleteBrandLogo, modifyBrandLogo, loading } = useBrandStore();
   const [error, setError] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
+  const [modifyingId, setModifyingId] = useState<string | null>(null);
+  const [modifyPrompt, setModifyPrompt] = useState('');
+  const [showPromptFor, setShowPromptFor] = useState<string | null>(null);
 
-  // Fetch brand data on mount
+  // Fetch saved brands on mount
   useEffect(() => {
-    // The store uses persist middleware, so data is already loaded from localStorage
-    // Just fetch latest from API if needed
+    fetchBrands().catch(() => {});
   }, []);
 
   const handleGenerate = async () => {
@@ -120,6 +134,52 @@ export default function BrandingPage() {
       setError(err instanceof Error ? err.message : 'Failed to generate branding');
     } finally {
       setIsGenerating(false);
+    }
+  };
+
+  const handleDownloadLogo = (brandId: string, brandName: string, format: string) => {
+    const token = localStorage.getItem('token');
+    const slug = getTenantSlug();
+    const url = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'}/branding/${brandId}/logo/download?format=${format}`;
+    
+    fetch(url, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'X-Tenant-Slug': slug || '',
+      },
+    })
+      .then(res => res.blob())
+      .then(blob => {
+        const ext = format === 'svg' ? 'svg' : format === 'jpeg' ? 'jpg' : 'png';
+        const downloadUrl = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = downloadUrl;
+        a.download = `logo-${brandName.replace(/[^a-z0-9]/gi, '-').toLowerCase()}.${ext}`;
+        a.click();
+        URL.revokeObjectURL(downloadUrl);
+      })
+      .catch(err => setError('Erreur téléchargement: ' + err.message));
+  };
+
+  const handleDeleteLogo = async (brandId: string) => {
+    setError('');
+    try {
+      await deleteBrandLogo(brandId);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erreur suppression logo');
+    }
+  };
+
+  const handleModifyLogo = async (brandId: string, prompt?: string) => {
+    setError('');
+    setModifyingId(brandId);
+    setShowPromptFor(null);
+    try {
+      await modifyBrandLogo(brandId, prompt ? { logoDescription: prompt } : undefined);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erreur modification logo');
+    } finally {
+      setModifyingId(null);
     }
   };
 
@@ -204,23 +264,58 @@ export default function BrandingPage() {
                 </div>
                 
                 <div className="space-y-2">
-                  <Label htmlFor="industry">Industry</Label>
-                  <Input
+                  <Label htmlFor="industry">Secteur d'activité</Label>
+                  <select
                     id="industry"
                     value={brand.industry || ''}
                     onChange={(e) => handleInputChange('industry', e.target.value)}
-                    placeholder="e.g., SaaS, E-commerce, Marketing"
+                    className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm bg-white"
+                  >
+                    <option value="">-- Sélectionner --</option>
+                    <option value="technology">Technologie</option>
+                    <option value="food">Restauration / Food</option>
+                    <option value="fashion">Mode</option>
+                    <option value="health">Santé / Fitness</option>
+                    <option value="beauty">Cosmétique / Beauté</option>
+                    <option value="realestate">Immobilier</option>
+                    <option value="education">Éducation</option>
+                    <option value="entertainment">Divertissement</option>
+                  </select>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="style">Style de design</Label>
+                  <select
+                    id="style"
+                    value={brand.style || 'modern'}
+                    onChange={(e) => handleInputChange('style', e.target.value)}
+                    className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm bg-white"
+                  >
+                    <option value="modern">Moderne — Épuré, géométrique, contemporain</option>
+                    <option value="classic">Classique — Élégant, intemporel, traditionnel</option>
+                    <option value="playful">Ludique — Coloré, jeune, créatif</option>
+                    <option value="luxurious">Luxe — Premium, doré, sophistiqué</option>
+                    <option value="tech">Tech — Futuriste, digital, minimaliste</option>
+                  </select>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="values">Valeurs (séparées par des virgules)</Label>
+                  <Input
+                    id="values"
+                    value={brand.values || ''}
+                    onChange={(e) => handleInputChange('values', e.target.value)}
+                    placeholder="ex: innovation, qualité, partage, authenticité"
                   />
                 </div>
                 
                 <div className="space-y-2">
-                  <Label htmlFor="targetAudience">Target Audience</Label>
-                  <textarea
-                    className="w-full rounded-md border px-3 py-2 text-sm"
+                  <Label htmlFor="targetAudience">Public cible</Label>
+                  <Input
+                    id="targetAudience"
                     value={brand.targetAudience || ''}
                     onChange={(e) => handleInputChange('targetAudience', e.target.value)}
-                    placeholder="Describe your ideal customer..."
-                    rows={3}
+                    placeholder="ex: PME, startups, particuliers..."
                   />
                 </div>
               </CardContent>
@@ -350,33 +445,22 @@ export default function BrandingPage() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="tone">Tone</Label>
+                  <Label htmlFor="tone">Ton de communication</Label>
                   <Input
                     id="tone"
                     value={brand.tone || 'professional'}
                     onChange={(e) => handleInputChange('tone', e.target.value)}
-                    placeholder="e.g., professional, friendly, witty"
+                    placeholder="ex: professionnel, amical, drôle, inspirant"
                   />
                 </div>
                 
                 <div className="space-y-2">
-                  <Label htmlFor="values">Core Values</Label>
-                  <textarea
-                    className="w-full rounded-md border px-3 py-2 text-sm"
-                    value={brand.values || ''}
-                    onChange={(e) => handleInputChange('values', e.target.value)}
-                    placeholder="e.g., Innovation, Customer-Centric, Integrity, Excellence"
-                    rows={4}
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="guidelines">Communication Guidelines</Label>
+                  <Label htmlFor="guidelines">Directives de communication</Label>
                   <textarea
                     className="w-full rounded-md border px-3 py-2 text-sm"
                     value={brand.guidelines || ''}
                     onChange={(e) => handleInputChange('guidelines', e.target.value)}
-                    placeholder="Describe how your brand communicates..."
+                    placeholder="Décris comment ta marque communique..."
                     rows={5}
                   />
                 </div>
@@ -384,6 +468,153 @@ export default function BrandingPage() {
             </Card>
           </TabsContent>
         </Tabs>
+      )}
+
+      {/* ======== SAVED BRANDS GALLERY ======== */}
+      {savedBrands.length > 0 && (
+        <div className="mt-10">
+          <h2 className="text-2xl font-bold mb-4">Marques generees ({savedBrands.length})</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {savedBrands.map((b) => (
+              <div
+                key={b.id}
+                className="border rounded-xl p-5 bg-white shadow-sm hover:shadow-md transition-shadow"
+              >
+                {/* Logo + Name */}
+                <div
+                  className="flex items-center gap-3 mb-3 cursor-pointer"
+                  onClick={() => {
+                    updateBrand({
+                      name: b.name || '',
+                      tagline: b.tagline || '',
+                      description: b.description || '',
+                      industry: b.industry || '',
+                      tone: b.tone || '',
+                      primaryColor: b.primaryColor || '',
+                      secondaryColor: b.secondaryColor || '',
+                      accentColor: b.accentColor || '',
+                      fontFamily: b.fontFamily || '',
+                    });
+                  }}
+                >
+                  {b.logo ? (
+                    <img src={b.logo} alt={b.name} className="w-14 h-14 rounded-xl object-contain bg-gray-50 border" />
+                  ) : (
+                    <div className="w-14 h-14 rounded-xl flex items-center justify-center bg-gray-100 border border-dashed border-gray-300 text-gray-400 text-xs text-center">
+                      Pas de logo
+                    </div>
+                  )}
+                  <div>
+                    <h3 className="font-semibold text-base">{b.name}</h3>
+                    {b.tagline && <p className="text-xs text-gray-500 italic">{b.tagline}</p>}
+                  </div>
+                </div>
+
+                {/* Colors */}
+                <div className="flex gap-1.5 mb-2">
+                  {[b.primaryColor, b.secondaryColor, b.accentColor].filter(Boolean).map((c, i) => (
+                    <div key={i} className="flex-1 h-3 rounded-full" style={{ backgroundColor: c }} title={c} />
+                  ))}
+                </div>
+
+                {/* Info */}
+                <div className="text-xs text-gray-500 space-y-0.5 mb-3">
+                  {b.industry && <p>Industrie : {b.industry}</p>}
+                  {b.fontFamily && <p>Police : {b.fontFamily.split(',')[0]}</p>}
+                  <p className="text-gray-400">
+                    {b.createdAt ? new Date(b.createdAt).toLocaleDateString('fr-FR') : ''}
+                  </p>
+                </div>
+
+                {/* Download format selector + Action Buttons */}
+                <div className="flex flex-col gap-1.5 pt-2 border-t border-gray-100">
+                  {/* Download row with format selector */}
+                  {b.logo && (
+                    <div className="flex gap-1">
+                      <select
+                        id={`format-${b.id}`}
+                        defaultValue="png"
+                        className="text-xs rounded-md border border-gray-200 px-1.5 py-1 bg-white flex-1"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <option value="png">PNG</option>
+                        <option value="jpeg">JPEG</option>
+                        <option value="svg">SVG</option>
+                      </select>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          const sel = document.getElementById(`format-${b.id}`) as HTMLSelectElement;
+                          handleDownloadLogo(b.id, b.name, sel?.value || 'png');
+                        }}
+                        className="text-xs px-2 py-1 rounded-md bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors font-medium"
+                      >
+                        Telecharger
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Delete whole brand */}
+                  <div className="flex gap-1">
+                    <button
+                      onClick={(e) => { e.stopPropagation(); deleteBrand(b.id).catch(() => {}); }}
+                      className="flex-1 text-xs px-2 py-1.5 rounded-md bg-red-50 text-red-600 hover:bg-red-100 transition-colors font-medium"
+                    >
+                      Supprimer
+                    </button>
+
+                    {/* IA Modify: show prompt input or button */}
+                    {showPromptFor === b.id ? (
+                      <div className="flex-1 flex gap-1" onClick={(e) => e.stopPropagation()}>
+                        <input
+                          autoFocus
+                          className="flex-1 text-xs rounded-md border border-purple-200 px-1.5 py-1"
+                          placeholder="Decris le logo souhaite..."
+                          value={modifyPrompt}
+                          onChange={(e) => setModifyPrompt(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              handleModifyLogo(b.id, modifyPrompt || undefined);
+                              setModifyPrompt('');
+                            }
+                          }}
+                        />
+                        <button
+                          onClick={() => {
+                            handleModifyLogo(b.id, modifyPrompt || undefined);
+                            setModifyPrompt('');
+                          }}
+                          className="text-xs px-2 py-1 rounded-md bg-purple-500 text-white hover:bg-purple-600 font-medium"
+                        >
+                          OK
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setShowPromptFor(b.id); setModifyPrompt(''); }}
+                        disabled={modifyingId === b.id}
+                        className={`flex-1 text-xs px-2 py-1.5 rounded-md font-medium transition-colors disabled:opacity-50 ${
+                          b.logo
+                            ? 'bg-purple-50 text-purple-700 hover:bg-purple-100'
+                            : 'bg-green-50 text-green-700 hover:bg-green-100'
+                        }`}
+                      >
+                        {modifyingId === b.id ? 'Generation...' : b.logo ? 'IA Modifier' : 'Generer logo'}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {savedBrands.length === 0 && !loading && (
+        <div className="text-center py-12 text-gray-400">
+          <p className="text-lg">Aucune marque générée</p>
+          <p className="text-sm mt-1">Remplis le formulaire et clique sur « Generate Branding »</p>
+        </div>
       )}
     </div>
   );

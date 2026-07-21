@@ -19,7 +19,7 @@ export function Sidebar() {
     { href: '/reels', label: 'Reels', icon: VideoIcon, showFor: ['ADMIN', 'OWNER', 'MEMBER'] },
     { href: '/planner', label: 'Planner', icon: CalendarIcon, showFor: ['ADMIN', 'OWNER', 'MEMBER'] },
     { href: '/websites', label: 'Websites', icon: GlobeIcon, showFor: ['ADMIN', 'OWNER', 'MEMBER'] },
-    { href: '/qrcode', label: 'QR Codes', icon: QrCodeIcon, showFor: ['ADMIN', 'OWNER', 'MEMBER'] },
+    { href: '/marketing', label: 'Marketing', icon: SparklesIcon, showFor: ['ADMIN', 'OWNER', 'MEMBER'] },
     { href: '/social', label: 'Social', icon: UsersIcon, showFor: ['ADMIN', 'OWNER'] },
     { href: '/settings', label: 'Settings', icon: SettingsIcon, showFor: ['ADMIN', 'OWNER'] },
   ].filter(item => item.showFor.includes(user?.role || 'MEMBER'));

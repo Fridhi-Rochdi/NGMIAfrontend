@@ -32,6 +32,7 @@ export { SparklesIcon } from './SparklesIcon';
 export { TextIcon } from './TextIcon';
 export { TrashIcon } from './TrashIcon';
 export { UnlinkIcon } from './UnlinkIcon';
+export { UploadIcon } from './UploadIcon';
 export { UserIcon } from './UserIcon';
 export { UsersIcon } from './UsersIcon';
 export { VideoIcon } from './VideoIcon';

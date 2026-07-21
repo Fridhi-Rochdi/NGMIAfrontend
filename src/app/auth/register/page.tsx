@@ -112,7 +112,7 @@ export default function RegisterPage() {
           <Player
             autoplay
             loop
-            src="https://lottie.host/9e4d1565-5154-46df-9a91-db8cf2f01f09/O933uD8YwN.json"
+            src="/lottie/register.json"
             style={{ height: '400px', width: '400px' }}
           />
         </div>

@@ -53,8 +53,12 @@ async function handleResponse<T>(response: Response): Promise<ApiResponse<T>> {
   }
   
   const data = await response.json();
+  // Unwrap response from TransformInterceptor if present
+  const unwrappedData = data?.data !== undefined && typeof data === 'object' 
+    ? data.data 
+    : data;
   return {
-    data,
+    data: unwrappedData,
     status: response.status,
   };
 }
@@ -95,3 +99,39 @@ export async function del<T>(endpoint: string): Promise<ApiResponse<T>> {
   
   return handleResponse<T>(response);
 }
+
+// File upload function
+export async function upload<T>(endpoint: string, file: File): Promise<ApiResponse<T>> {
+  const formData = new FormData();
+  formData.append('file', file);
+
+  const headers: Record<string, string> = {};
+  if (typeof window !== 'undefined') {
+    const token = localStorage.getItem('token');
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+    const slug = getTenantSlug();
+    if (slug) {
+      headers['X-Tenant-Slug'] = slug;
+    }
+  }
+
+  const response = await fetch(`${API_URL}${endpoint}`, {
+    method: 'POST',
+    headers,
+    body: formData,
+  });
+
+  return handleResponse<T>(response);
+}
+
+// Convenience object that groups all API methods, for pages that
+// prefer `api.post(...)` style imports: `import { api } from '@/lib/api'`
+export const api = {
+  get,
+  post,
+  put,
+  delete: del,
+  upload,
+};

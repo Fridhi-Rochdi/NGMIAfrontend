@@ -10,6 +10,7 @@ export const NAVIGATION = [
   { name: 'Social', href: '/social', icon: 'Share2' },
   { name: 'Images', href: '/images', icon: 'Image' },
   { name: 'Branding', href: '/branding', icon: 'Palette' },
+  { name: 'Menu', href: '/menu', icon: 'Menu' },
   { name: 'Planner', href: '/planner', icon: 'Calendar' },
   { name: 'Settings', href: '/settings', icon: 'Settings' },
 ] as const;
