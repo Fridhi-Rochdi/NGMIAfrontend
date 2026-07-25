@@ -92,6 +92,62 @@ export async function del<T>(endpoint: string): Promise<ApiResponse<T>> {
     method: 'DELETE',
     headers: buildHeaders(),
   });
-  
+
   return handleResponse<T>(response);
 }
+
+// ---------------------------------------------------------------------------
+// `api` object — returns { data, status } where `data` is the business payload
+// with the backend TransformInterceptor envelope ({ data, statusCode, ... })
+// automatically unwrapped. Also supports multipart uploads via `api.upload`.
+// ---------------------------------------------------------------------------
+
+function unwrap(json: any): any {
+  if (
+    json &&
+    typeof json === 'object' &&
+    'data' in json &&
+    'statusCode' in json &&
+    'timestamp' in json
+  ) {
+    return json.data;
+  }
+  return json;
+}
+
+async function request<T = any>(
+  method: string,
+  endpoint: string,
+  body?: unknown,
+): Promise<ApiResponse<T>> {
+  const res = await fetch(`${API_URL}${endpoint}`, {
+    method,
+    headers: buildHeaders(),
+    body: body === undefined ? undefined : JSON.stringify(body),
+  });
+  const wrapped = await handleResponse<any>(res);
+  return { data: unwrap(wrapped.data), status: wrapped.status };
+}
+
+function authHeadersNoContentType(): Record<string, string> {
+  const h = buildHeaders();
+  delete h['Content-Type']; // let the browser set the multipart boundary
+  return h;
+}
+
+export const api = {
+  get: <T = any>(endpoint: string) => request<T>('GET', endpoint),
+  post: <T = any>(endpoint: string, body?: unknown) => request<T>('POST', endpoint, body),
+  put: <T = any>(endpoint: string, body?: unknown) => request<T>('PUT', endpoint, body),
+  patch: <T = any>(endpoint: string, body?: unknown) => request<T>('PATCH', endpoint, body),
+  del: <T = any>(endpoint: string) => request<T>('DELETE', endpoint),
+  upload: async <T = any>(endpoint: string, formData: FormData): Promise<ApiResponse<T>> => {
+    const res = await fetch(`${API_URL}${endpoint}`, {
+      method: 'POST',
+      headers: authHeadersNoContentType(),
+      body: formData,
+    });
+    const wrapped = await handleResponse<any>(res);
+    return { data: unwrap(wrapped.data), status: wrapped.status };
+  },
+};
