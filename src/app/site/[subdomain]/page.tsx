@@ -40,7 +40,10 @@ export default function SitePage() {
           return;
         }
 
-        const data = await res.json();
+        const json = await res.json();
+        // Tolerate the backend response envelope ({ data, statusCode, timestamp }).
+        const data =
+          json && json.statusCode !== undefined && json.data !== undefined ? json.data : json;
         setWebsite(data);
         setLoading(false);
       } catch {
@@ -80,10 +83,7 @@ export default function SitePage() {
     );
   }
 
-  return (
-    <div className="min-h-screen">
-      <style dangerouslySetInnerHTML={{ __html: website?.css || '' }} />
-      <div dangerouslySetInnerHTML={{ __html: website?.html || '' }} />
-    </div>
-  );
+  // The compiled HTML is a full self-contained document (with its own <head>
+  // scripts/styles), so render it in an iframe rather than injecting innerHTML.
+  return <iframe srcDoc={website?.html || ''} className="w-full h-screen border-0" title={website?.businessName || 'site'} />;
 }
