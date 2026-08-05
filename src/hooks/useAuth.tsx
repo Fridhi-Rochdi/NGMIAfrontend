@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { User, AuthResponse } from '@/types';
 import { post, get } from '@/lib/api';
+import { clearAuthToken, getAuthToken, storeAuthToken } from '@/lib/auth-token';
 
 interface AuthContextType {
   user: User | null;
@@ -28,7 +29,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   const loadUser = useCallback(async () => {
-    const token = localStorage.getItem('token');
+    const token = getAuthToken();
     if (!token) {
       setUser(null);
       setIsLoading(false);
@@ -39,7 +40,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const response = await get<User>('/auth/profile');
       setUser(response.data);
     } catch {
-      localStorage.removeItem('token');
+      clearAuthToken();
       setUser(null);
     } finally {
       setIsLoading(false);
@@ -55,8 +56,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (tenantSlug) body.tenantSlug = tenantSlug;
 
     const response = await post<AuthResponse>('/auth/login', body);
-    localStorage.setItem('token', response.data.accessToken);
-    document.cookie = `token=${response.data.accessToken}; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Lax`;
+    storeAuthToken(response.data.accessToken);
+    localStorage.setItem('user', JSON.stringify(response.data.user));
     setUser(response.data.user);
   };
 
@@ -69,14 +70,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     tenantSlug: string;
   }) => {
     const response = await post<AuthResponse>('/auth/register', data);
-    localStorage.setItem('token', response.data.accessToken);
-    document.cookie = `token=${response.data.accessToken}; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Lax`;
+    storeAuthToken(response.data.accessToken);
+    localStorage.setItem('user', JSON.stringify(response.data.user));
     setUser(response.data.user);
   };
 
   const logout = () => {
-    localStorage.removeItem('token');
-    document.cookie = 'token=; path=/; max-age=0';
+    clearAuthToken();
+    localStorage.removeItem('user');
     setUser(null);
   };
 

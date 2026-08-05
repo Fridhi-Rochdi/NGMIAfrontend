@@ -1,4 +1,3 @@
-"use client";
 import { SVGProps } from 'react';
 
 export function ChevronRightIcon(props: SVGProps<SVGSVGElement>) {

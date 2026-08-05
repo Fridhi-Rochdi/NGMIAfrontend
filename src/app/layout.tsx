@@ -9,6 +9,11 @@ const inter = Inter({ subsets: ['latin'] });
 export const metadata: Metadata = {
   title: 'NextGen MarketingAI',
   description: 'AI-powered marketing platform for SMEs',
+  icons: {
+    icon: '/nextgen-mark.svg',
+    shortcut: '/nextgen-mark.svg',
+    apple: '/nextgen-mark.svg',
+  },
 };
 
 export default function RootLayout({

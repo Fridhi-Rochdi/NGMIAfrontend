@@ -1,262 +1,96 @@
 "use client";
 
-import { useState } from 'react';
-import { Button } from '@/components/ui/Button';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/Card';
-import { Input } from '@/components/ui/Input';
-import { Label } from '@/components/ui/Label';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/Tabs';
+import { useCallback, useEffect, useState } from 'react';
+import Link from 'next/link';
 import { Alert, AlertDescription } from '@/components/ui/Alert';
 import { Badge } from '@/components/ui/Badge';
-import { ImageIcon, SparklesIcon, DownloadIcon, TrashIcon, RefreshIcon } from '@/components/icons';
+import { Button } from '@/components/ui/Button';
+import { DownloadIcon, ImageIcon, PlusIcon, TrashIcon } from '@/components/icons';
 import { useImagesStore } from '@/lib/store/images-store';
 
-export default function ImagesPage() {
-  const {
-    image,
-    updateImage,
-    generateImage,
-    loading,
-    styles,
-    sizes,
-    aiModels,
-    generatedImages,
-    clearImage,
-  } = useImagesStore();
+function formatDate(value?: string) {
+  if (!value) return '—';
+  return new Intl.DateTimeFormat('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' }).format(new Date(value));
+}
+
+export default function ImagesLibraryPage() {
+  const { generatedImages, loading, fetchImages, deleteImage } = useImagesStore();
   const [error, setError] = useState('');
-  const [isGenerating, setIsGenerating] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
-  const handleGenerate = async () => {
+  const load = useCallback(async () => {
     setError('');
-    setIsGenerating(true);
-    try {
-      await generateImage();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to generate image');
-    } finally {
-      setIsGenerating(false);
-    }
-  };
+    try { await fetchImages(); } catch { setError('Impossible de charger vos images.'); }
+  }, [fetchImages]);
 
-  const handleInputChange = (field: keyof typeof image, value: string) => {
-    updateImage({ ...image, [field]: value });
+  useEffect(() => { void load(); }, [load]);
+
+  const remove = async (id: string) => {
+    if (!window.confirm('Supprimer définitivement cette image ?')) return;
+    setDeletingId(id);
+    try { await deleteImage(id); } catch { setError('La suppression de l’image a échoué.'); }
+    finally { setDeletingId(null); }
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="space-y-6 pb-10">
+      <header className="flex flex-col gap-5 rounded-[28px] bg-slate-950 px-6 py-7 text-white shadow-xl sm:flex-row sm:items-center sm:justify-between sm:px-8">
         <div>
-          <h1 className="text-3xl font-bold">Image Generation</h1>
-          <p className="text-gray-600">Create stunning AI-generated images for your marketing</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-cyan-300">Bibliothèque visuelle</p>
+          <h1 className="mt-2 text-3xl font-semibold tracking-tight">Toutes vos images</h1>
+          <p className="mt-2 text-sm text-white/60">{generatedImages.length} image{generatedImages.length === 1 ? '' : 's'} générée{generatedImages.length === 1 ? '' : 's'}</p>
         </div>
-        <Button onClick={handleGenerate} disabled={isGenerating} className="flex items-center space-x-2">
-          {isGenerating ? (
-            <>
-              <SparklesIcon className="h-4 w-4 animate-spin" />
-              Generating...
-            </>
-          ) : (
-            <>
-              <SparklesIcon className="h-4 w-4" />
-              Generate Image
-            </>
-          )}
-        </Button>
-      </div>
+        <Link href="/images/create" className="inline-flex items-center justify-center rounded-xl bg-cyan-300 px-5 py-3 font-semibold text-slate-950 transition hover:bg-cyan-200">
+          <PlusIcon className="mr-2 h-5 w-5" />Créer une nouvelle image
+        </Link>
+      </header>
 
-      {error && (
-        <Alert variant="destructive">
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      )}
+      {error && <Alert variant="destructive"><AlertDescription className="flex items-center justify-between gap-3"><span>{error}</span><Button size="sm" variant="outline" onClick={() => void load()}>Réessayer</Button></AlertDescription></Alert>}
 
-      <Tabs defaultValue="create" className="space-y-6">
-        <TabsList>
-          <TabsTrigger value="create">Create Image</TabsTrigger>
-          <TabsTrigger value="gallery">Gallery</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="create" className="space-y-6">
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-            <Card>
-              <CardHeader>
-                <CardTitle>Image Configuration</CardTitle>
-                <CardDescription>Configure your image generation parameters</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="prompt">Prompt</Label>
-                  <textarea
-                    id="prompt"
-                    className="w-full rounded-md border px-3 py-2 text-sm"
-                    value={image.prompt || ''}
-                    onChange={(e) => handleInputChange('prompt', e.target.value)}
-                    placeholder="Describe the image you want to generate..."
-                    rows={4}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="negativePrompt">Negative Prompt</Label>
-                  <Input
-                    id="negativePrompt"
-                    value={image.negativePrompt || ''}
-                    onChange={(e) => handleInputChange('negativePrompt', e.target.value)}
-                    placeholder="What to avoid in the image..."
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="style">Style</Label>
-                  <select
-                    id="style"
-                    value={image.style || ''}
-                    onChange={(e) => handleInputChange('style', e.target.value)}
-                    className="w-full rounded-md border px-3 py-2 text-sm"
-                  >
-                    {styles.map((style) => (
-                      <option key={style} value={style}>
-                        {style.charAt(0).toUpperCase() + style.slice(1)}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="size">Size</Label>
-                  <select
-                    id="size"
-                    value={image.size || ''}
-                    onChange={(e) => handleInputChange('size', e.target.value)}
-                    className="w-full rounded-md border px-3 py-2 text-sm"
-                  >
-                    {sizes.map((size) => (
-                      <option key={size} value={size}>
-                        {size}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="aiModel">AI Model</Label>
-                  <select
-                    id="aiModel"
-                    value={image.aiModel || ''}
-                    onChange={(e) => handleInputChange('aiModel', e.target.value)}
-                    className="w-full rounded-md border px-3 py-2 text-sm"
-                  >
-                    {aiModels.map((model) => (
-                      <option key={model} value={model}>
-                        {model}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </CardContent>
-              <CardFooter>
-                <Button onClick={handleGenerate} disabled={isGenerating} className="w-full">
-                  {isGenerating ? (
-                    <>
-                      <SparklesIcon className="h-4 w-4 animate-spin" />
-                      Generating...
-                    </>
-                  ) : (
-                    <>
-                      <SparklesIcon className="h-4 w-4" />
-                      Generate Image
-                    </>
-                  )}
-                </Button>
-              </CardFooter>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Preview</CardTitle>
-                <CardDescription>Generated image preview</CardDescription>
-              </CardHeader>
-              <CardContent>
-                {image.generatedImageUrl ? (
-                  <div className="space-y-4">
-                    <div className="relative aspect-square overflow-hidden rounded-lg border bg-gray-100">
-                      <img
-                        src={image.generatedImageUrl}
-                        alt="Generated"
-                        className="h-full w-full object-cover"
-                      />
-                    </div>
-                    <div className="flex space-x-2">
-                      <Button variant="outline" size="sm" className="flex-1">
-                        <DownloadIcon className="mr-2 h-4 w-4" />
-                        Download
-                      </Button>
-                      <Button variant="outline" size="sm" className="flex-1" onClick={handleGenerate}>
-                        <RefreshIcon className="mr-2 h-4 w-4" />
-                        Regenerate
-                      </Button>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="flex aspect-square items-center justify-center rounded-lg border-2 border-dashed border-gray-300 bg-gray-50">
-                    <div className="text-center">
-                      <ImageIcon className="mx-auto h-12 w-12 text-gray-400" />
-                      <p className="mt-2 text-sm text-gray-500">
-                        Generated image will appear here
-                      </p>
-                    </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+      <section className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+        {loading ? (
+          <div className="space-y-3 p-6">{[1, 2, 3].map((item) => <div key={item} className="h-20 animate-pulse rounded-xl bg-gray-100" />)}</div>
+        ) : generatedImages.length === 0 ? (
+          <div className="flex flex-col items-center px-6 py-20 text-center">
+            <div className="rounded-2xl bg-cyan-50 p-4 text-cyan-700"><ImageIcon className="h-8 w-8" /></div>
+            <h2 className="mt-5 text-xl font-semibold">Aucune image générée</h2>
+            <p className="mt-2 text-sm text-gray-500">Créez votre premier visuel marketing avec le studio IA.</p>
+            <Link href="/images/create" className="mt-6 rounded-xl bg-slate-950 px-5 py-2.5 font-medium text-white hover:bg-slate-800">Créer ma première image</Link>
           </div>
-        </TabsContent>
-
-        <TabsContent value="gallery" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Image Gallery</CardTitle>
-              <CardDescription>Your previously generated images</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {generatedImages.length > 0 ? (
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                  {generatedImages.map((img, index) => (
-                    <div key={index} className="group relative overflow-hidden rounded-lg border bg-gray-100">
-                      <div className="aspect-square">
-                        <img
-                          src={img.generatedImageUrl}
-                          alt={img.prompt}
-                          className="h-full w-full object-cover"
-                        />
-                      </div>
-                      <div className="absolute inset-0 flex items-end bg-gradient-to-t from-black/60 to-transparent p-3 opacity-0 transition-opacity group-hover:opacity-100">
-                        <div className="w-full">
-                          <p className="text-xs text-white line-clamp-2">{img.prompt}</p>
-                          <div className="mt-1 flex items-center justify-between">
-                            <Badge variant="outline" className="text-white border-white/30">
-                              {img.style}
-                            </Badge>
-                            <span className="text-xs text-white/70">
-                              {img.generatedAt ? new Date(img.generatedAt).toLocaleDateString() : ''}
-                            </span>
-                          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[820px] text-left text-sm">
+              <thead className="border-b bg-gray-50 text-xs uppercase tracking-wider text-gray-500"><tr><th className="px-6 py-4">Aperçu</th><th className="px-6 py-4">Business</th><th className="px-6 py-4">Template</th><th className="px-6 py-4">Style</th><th className="px-6 py-4">Statut</th><th className="px-6 py-4">Créée le</th><th className="px-6 py-4 text-right">Actions</th></tr></thead>
+              <tbody className="divide-y divide-gray-100">
+                {generatedImages.map((item) => {
+                  const imageUrl = item.url || item.imageUrl;
+                  return <tr key={item.id} className="transition hover:bg-gray-50/80">
+                    <td className="px-6 py-3">{imageUrl ? <img src={imageUrl} alt="" className="h-16 w-16 rounded-xl object-cover" /> : <div className="grid h-16 w-16 place-items-center rounded-xl bg-gray-100"><ImageIcon className="h-5 w-5 text-gray-400" /></div>}</td>
+                    <td className="px-6 py-4">
+                      {item.businessName ? (
+                        <div>
+                          <p className="font-medium text-gray-900">{item.businessName}</p>
+                          <p className="text-xs text-gray-500">{item.businessType}</p>
                         </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="flex flex-col items-center justify-center py-12 text-center">
-                  <ImageIcon className="h-12 w-12 text-gray-400" />
-                  <p className="mt-2 text-gray-500">No images generated yet</p>
-                  <p className="text-sm text-gray-400">Generate your first image to see it here</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+                      ) : (
+                        <p className="max-w-[200px] truncate text-gray-700">{item.prompt}</p>
+                      )}
+                    </td>
+                    <td className="px-6 py-4"><Badge variant="secondary" className="capitalize">{item.template || '—'}</Badge></td>
+                    <td className="px-6 py-4 capitalize text-gray-600">{item.style || '—'}</td>
+                    <td className="px-6 py-4"><Badge variant={item.status === 'COMPLETED' ? 'success' : item.status === 'FAILED' ? 'error' : 'warning'}>{item.status}</Badge></td>
+                    <td className="px-6 py-4 text-gray-600">{formatDate(item.createdAt)}</td>
+                    <td className="px-6 py-4"><div className="flex justify-end gap-1">
+                      {imageUrl && <a href={imageUrl} download className="inline-flex h-10 w-10 items-center justify-center rounded-lg text-gray-600 hover:bg-gray-100" title="Télécharger"><DownloadIcon className="h-4 w-4" /></a>}
+                      <Button variant="ghost" size="icon" title="Supprimer" aria-label="Supprimer l’image" disabled={deletingId === item.id} onClick={() => void remove(item.id)}><TrashIcon className="h-4 w-4 text-red-600" /></Button>
+                    </div></td>
+                  </tr>;
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
     </div>
   );
 }

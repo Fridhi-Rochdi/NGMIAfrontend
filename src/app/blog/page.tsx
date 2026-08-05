@@ -103,7 +103,7 @@ export default function BlogPage() {
           </Link>
           <div className="flex items-center gap-3">
             <LogoIcon className="h-10 w-10" />
-            <span className="font-bold text-white uppercase tracking-wider">MarketingAI</span>
+            <span className="font-bold text-white uppercase tracking-wider">NextGen AI</span>
           </div>
         </div>
       </header>
@@ -244,7 +244,7 @@ export default function BlogPage() {
           <div className="flex flex-col md:flex-row items-center justify-between gap-6 text-xs font-bold tracking-widest uppercase text-gray-600">
             <div className="flex items-center gap-3">
               <LogoIcon className="h-8 w-8" />
-              <span className="text-gray-400">MarketingAI Blog</span>
+              <span className="text-gray-400">NextGen AI Blog</span>
             </div>
             <p>© {new Date().getFullYear()} NextGen. Built for scale.</p>
           </div>

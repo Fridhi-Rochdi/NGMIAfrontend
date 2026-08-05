@@ -2,7 +2,7 @@
 
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { get, post, put, del } from '@/lib/api';
+import { get as apiGet, post, put, del } from '@/lib/api';
 import type { SocialAccountItem, SocialPostItem } from '@/types';
 
 const parseHashtags = (val: any): string[] => {
@@ -93,7 +93,7 @@ export const useSocialStore = create<SocialStore>()(
       fetchPosts: async () => {
         set({ loading: true });
         try {
-          const response = await get<SocialPostItem[]>('/social/posts');
+          const response = await apiGet<SocialPostItem[]>('/social/posts');
           const mapped: SocialPost[] = (response.data as any[]).map((p) => ({
             id: p.id,
             content: p.content || '',
@@ -173,11 +173,11 @@ export const useSocialStore = create<SocialStore>()(
           });
           const mapped: SocialPost = {
             id: response.data.id,
-            content: response.data.content || data.content,
+            content: response.data.body || data.content,
             platform: response.data.platform || data.platform,
             scheduledDate: response.data.scheduledAt || data.scheduledDate,
             status: response.data.status || data.status,
-            mediaUrls: response.data.mediaUrls || data.mediaUrls,
+            mediaUrls: data.mediaUrls,
             hashtags: parseHashtags(response.data.hashtags || data.hashtags),
           };
           set((state) => ({
@@ -191,7 +191,7 @@ export const useSocialStore = create<SocialStore>()(
       fetchAccounts: async () => {
         set({ loading: true });
         try {
-          const response = await get<SocialAccountItem[]>('/social/accounts');
+          const response = await apiGet<SocialAccountItem[]>('/social/accounts');
           const mapped: SocialAccount[] = (response.data as any[]).map((a) => ({
             id: a.id,
             platform: a.platform || '',

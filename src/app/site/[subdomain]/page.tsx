@@ -83,7 +83,13 @@ export default function SitePage() {
     );
   }
 
-  // The compiled HTML is a full self-contained document (with its own <head>
-  // scripts/styles), so render it in an iframe rather than injecting innerHTML.
-  return <iframe srcDoc={website?.html || ''} className="w-full h-screen border-0" title={website?.businessName || 'site'} />;
+  return (
+    <iframe
+      title={website?.businessName || 'Generated website'}
+      className="min-h-screen w-full border-0"
+      sandbox=""
+      referrerPolicy="no-referrer"
+      srcDoc={`${website?.html || ''}<style>${website?.css || ''}</style>`}
+    />
+  );
 }

@@ -21,6 +21,7 @@ export { MusicIcon } from './MusicIcon';
 export { PaletteIcon } from './PaletteIcon';
 export { PencilIcon } from './PencilIcon';
 export { PlusIcon } from './PlusIcon';
+export { PosterIcon } from './PosterIcon';
 export { QrCodeIcon } from './QrCodeIcon';
 export { RefreshIcon } from './RefreshIcon';
 export { SaveIcon } from './SaveIcon';

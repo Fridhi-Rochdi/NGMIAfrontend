@@ -1,621 +1,84 @@
 "use client";
 
-import { useState, useEffect } from 'react';
-import { Button } from '@/components/ui/Button';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/Card';
-import { Input } from '@/components/ui/Input';
-import { Label } from '@/components/ui/Label';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/Tabs';
+import { useCallback, useEffect, useState } from 'react';
+import Link from 'next/link';
 import { Alert, AlertDescription } from '@/components/ui/Alert';
-import { SparklesIcon, PaletteIcon, FontIcon, TextIcon, CheckIcon } from '@/components/icons';
+import { Button } from '@/components/ui/Button';
+import { DownloadIcon, PaletteIcon, PlusIcon, TrashIcon } from '@/components/icons';
 import { useBrandStore } from '@/lib/store/brand-store';
 
-function getTenantSlug(): string | null {
-  if (typeof window === 'undefined') return null;
-  try {
-    const raw = localStorage.getItem('user');
-    if (!raw) return null;
-    const user = JSON.parse(raw);
-    return user?.tenant?.slug ?? null;
-  } catch {
-    return null;
-  }
+function tenantSlug() {
+  try { return JSON.parse(localStorage.getItem('user') || '{}')?.tenant?.slug || ''; } catch { return ''; }
 }
 
-const FONT_OPTIONS = [
-  "Inter, sans-serif",
-  "Roboto, sans-serif",
-  "Open Sans, sans-serif",
-  "Montserrat, sans-serif",
-  "Lato, sans-serif",
-  "Poppins, sans-serif",
-  "Playfair Display, serif",
-  "Merriweather, serif",
-  "Nunito, sans-serif",
-  "Raleway, sans-serif",
-  "Ubuntu, sans-serif",
-  "Oswald, sans-serif",
-  "Rubik, sans-serif",
-  "Noto Sans, sans-serif",
-  "Work Sans, sans-serif",
-  "Fira Sans, sans-serif",
-  "Quicksand, sans-serif",
-  "Barlow, sans-serif",
-  "PT Sans, sans-serif",
-  "PT Serif, serif",
-  "Lora, serif",
-  "Libre Baskerville, serif",
-  "Crimson Text, serif",
-  "EB Garamond, serif",
-  "Josefin Sans, sans-serif",
-  "DM Sans, sans-serif",
-  "Karla, sans-serif",
-  "Mulish, sans-serif",
-  "Inconsolata, monospace",
-  "Source Code Pro, monospace",
-  "Space Mono, monospace",
-  "Dancing Script, cursive",
-  "Pacifico, cursive",
-  "Caveat, cursive",
-  "Outfit, sans-serif",
-  "Manrope, sans-serif",
-  "Plus Jakarta Sans, sans-serif",
-  "Sora, sans-serif",
-  "Public Sans, sans-serif",
-  "Cabin, sans-serif",
-  "Hind, sans-serif",
-  "Heebo, sans-serif",
-  "Arimo, sans-serif",
-  "Dosis, sans-serif",
-  "Overpass, sans-serif",
-  "Bitter, serif",
-  "Zilla Slab, serif",
-  "Arvo, serif",
-  "Courier New, monospace"
-];
-
-function FontPicker({ value, onChange, options }: { value: string, onChange: (val: string) => void, options: string[] }) {
-  const [isOpen, setIsOpen] = useState(false);
-  const selectedName = (value || 'Inter').split(',')[0].replace(/'/g, '');
-  
-  return (
-    <div className="relative">
-      <div 
-        onClick={() => setIsOpen(!isOpen)}
-        className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm bg-white cursor-pointer flex justify-between items-center shadow-sm"
-      >
-        <span style={{ fontFamily: value }} className="text-base">{selectedName}</span>
-        <span className="text-gray-400 text-xs">▼</span>
-      </div>
-      
-      {isOpen && (
-        <div className="absolute z-50 mt-1 w-full max-h-64 overflow-y-auto rounded-md border bg-white shadow-lg">
-          {options.map((font) => {
-            const fontName = font.split(',')[0].replace(/'/g, '');
-            return (
-              <div
-                key={font}
-                onClick={() => {
-                  onChange(font);
-                  setIsOpen(false);
-                }}
-                className="px-3 py-3 text-base cursor-pointer hover:bg-gray-100 hover:text-indigo-600 transition-colors border-b border-gray-50 last:border-0"
-                style={{ fontFamily: font }}
-              >
-                {fontName}
-              </div>
-            );
-          })}
-        </div>
-      )}
-    </div>
-  );
+function formatDate(value?: string) {
+  if (!value) return '—';
+  return new Intl.DateTimeFormat('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' }).format(new Date(value));
 }
 
-export default function BrandingPage() {
-  const { brand, updateBrand, generateBranding, savedBrands, fetchBrands, deleteBrand, deleteBrandLogo, modifyBrandLogo, loading } = useBrandStore();
+export default function BrandingLibraryPage() {
+  const { savedBrands, fetchBrands, deleteBrand, loading } = useBrandStore();
   const [error, setError] = useState('');
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [modifyingId, setModifyingId] = useState<string | null>(null);
-  const [modifyPrompt, setModifyPrompt] = useState('');
-  const [showPromptFor, setShowPromptFor] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
-  // Fetch saved brands on mount
-  useEffect(() => {
-    fetchBrands().catch(() => {});
-  }, []);
-
-  const handleGenerate = async () => {
+  const load = useCallback(async () => {
     setError('');
-    setIsGenerating(true);
+    try { await fetchBrands(); } catch { setError('Impossible de charger vos identités de marque.'); }
+  }, [fetchBrands]);
+
+  useEffect(() => { void load(); }, [load]);
+
+  const remove = async (id: string, name: string) => {
+    if (!window.confirm(`Supprimer définitivement la marque « ${name} » ?`)) return;
+    setDeletingId(id);
+    try { await deleteBrand(id); } catch { setError('La suppression de la marque a échoué.'); }
+    finally { setDeletingId(null); }
+  };
+
+  const downloadLogo = async (id: string, name: string) => {
     try {
-      await generateBranding();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to generate branding');
-    } finally {
-      setIsGenerating(false);
-    }
-  };
-
-  const handleDownloadLogo = (brandId: string, brandName: string, format: string) => {
-    const token = localStorage.getItem('token');
-    const slug = getTenantSlug();
-    const url = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'}/branding/${brandId}/logo/download?format=${format}`;
-    
-    fetch(url, {
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'X-Tenant-Slug': slug || '',
-      },
-    })
-      .then(res => res.blob())
-      .then(blob => {
-        const ext = format === 'svg' ? 'svg' : format === 'jpeg' ? 'jpg' : 'png';
-        const downloadUrl = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = downloadUrl;
-        a.download = `logo-${brandName.replace(/[^a-z0-9]/gi, '-').toLowerCase()}.${ext}`;
-        a.click();
-        URL.revokeObjectURL(downloadUrl);
-      })
-      .catch(err => setError('Erreur téléchargement: ' + err.message));
-  };
-
-  const handleDeleteLogo = async (brandId: string) => {
-    setError('');
-    try {
-      await deleteBrandLogo(brandId);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erreur suppression logo');
-    }
-  };
-
-  const handleModifyLogo = async (brandId: string, prompt?: string) => {
-    setError('');
-    setModifyingId(brandId);
-    setShowPromptFor(null);
-    try {
-      await modifyBrandLogo(brandId, prompt ? { logoDescription: prompt } : undefined);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erreur modification logo');
-    } finally {
-      setModifyingId(null);
-    }
-  };
-
-  const handleInputChange = (field: keyof typeof brand, value: string) => {
-    // Store uses persist middleware, so updates are automatically saved
-    updateBrand({ ...brand, [field]: value });
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'}/branding/${id}/logo/download?format=png`, {
+        headers: { Authorization: `Bearer ${token}`, 'X-Tenant-Slug': tenantSlug() },
+      });
+      if (!response.ok) throw new Error('download failed');
+      const url = URL.createObjectURL(await response.blob());
+      const anchor = document.createElement('a');
+      anchor.href = url;
+      anchor.download = `logo-${name.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}.png`;
+      anchor.click();
+      window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch { setError('Le téléchargement du logo a échoué.'); }
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="space-y-6 pb-10">
+      <header className="flex flex-col gap-5 rounded-[28px] bg-violet-950 px-6 py-7 text-white shadow-xl sm:flex-row sm:items-center sm:justify-between sm:px-8">
         <div>
-          <h1 className="text-3xl font-bold">Branding</h1>
-          <p className="text-gray-600">Define your brand identity and guidelines</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-violet-300">Bibliothèque de marque</p>
+          <h1 className="mt-2 text-3xl font-semibold tracking-tight">Toutes vos identités</h1>
+          <p className="mt-2 text-sm text-white/60">{savedBrands.length} marque{savedBrands.length === 1 ? '' : 's'} enregistrée{savedBrands.length === 1 ? '' : 's'}</p>
         </div>
-        <Button onClick={handleGenerate} disabled={isGenerating} className="flex items-center space-x-2">
-          {isGenerating ? (
-            <>
-              <SparklesIcon className="h-4 w-4 animate-spin" />
-              Generating...
-            </>
-          ) : (
-            <>
-              <SparklesIcon className="h-4 w-4" />
-              Generate Branding
-            </>
-          )}
-        </Button>
-      </div>
+        <Link href="/branding/create" className="inline-flex items-center justify-center rounded-xl bg-white px-5 py-3 font-semibold text-violet-950 transition hover:bg-violet-50"><PlusIcon className="mr-2 h-5 w-5" />Créer une nouvelle identité</Link>
+      </header>
 
-      {error && (
-        <Alert variant="destructive">
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      )}
+      {error && <Alert variant="destructive"><AlertDescription className="flex items-center justify-between gap-3"><span>{error}</span><Button size="sm" variant="outline" onClick={() => void load()}>Réessayer</Button></AlertDescription></Alert>}
 
-      {brand && (
-        <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList>
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="colors">Colors</TabsTrigger>
-            <TabsTrigger value="typography">Typography</TabsTrigger>
-            <TabsTrigger value="tone">Tone & Voice</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="overview" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Brand Overview</CardTitle>
-                <CardDescription>Basic brand information</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="name">Brand Name</Label>
-                  <Input
-                    id="name"
-                    value={brand.name || ''}
-                    onChange={(e) => handleInputChange('name', e.target.value)}
-                    placeholder="Your Brand Name"
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="tagline">Tagline</Label>
-                  <Input
-                    id="tagline"
-                    value={brand.tagline || ''}
-                    onChange={(e) => handleInputChange('tagline', e.target.value)}
-                    placeholder="Your brand tagline"
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="description">Description</Label>
-                  <textarea
-                    className="w-full rounded-md border px-3 py-2 text-sm"
-                    value={brand.description || ''}
-                    onChange={(e) => handleInputChange('description', e.target.value)}
-                    placeholder="Describe your brand in a few sentences..."
-                    rows={4}
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="industry">Secteur d'activité</Label>
-                  <select
-                    id="industry"
-                    value={brand.industry || ''}
-                    onChange={(e) => handleInputChange('industry', e.target.value)}
-                    className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm bg-white"
-                  >
-                    <option value="">-- Sélectionner --</option>
-                    <option value="technology">Technologie</option>
-                    <option value="food">Restauration / Food</option>
-                    <option value="fashion">Mode</option>
-                    <option value="health">Santé / Fitness</option>
-                    <option value="beauty">Cosmétique / Beauté</option>
-                    <option value="realestate">Immobilier</option>
-                    <option value="education">Éducation</option>
-                    <option value="entertainment">Divertissement</option>
-                  </select>
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="style">Style de design</Label>
-                  <select
-                    id="style"
-                    value={brand.style || 'modern'}
-                    onChange={(e) => handleInputChange('style', e.target.value)}
-                    className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm bg-white"
-                  >
-                    <option value="modern">Moderne — Épuré, géométrique, contemporain</option>
-                    <option value="classic">Classique — Élégant, intemporel, traditionnel</option>
-                    <option value="playful">Ludique — Coloré, jeune, créatif</option>
-                    <option value="luxurious">Luxe — Premium, doré, sophistiqué</option>
-                    <option value="tech">Tech — Futuriste, digital, minimaliste</option>
-                  </select>
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="values">Valeurs (séparées par des virgules)</Label>
-                  <Input
-                    id="values"
-                    value={brand.values || ''}
-                    onChange={(e) => handleInputChange('values', e.target.value)}
-                    placeholder="ex: innovation, qualité, partage, authenticité"
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="targetAudience">Public cible</Label>
-                  <Input
-                    id="targetAudience"
-                    value={brand.targetAudience || ''}
-                    onChange={(e) => handleInputChange('targetAudience', e.target.value)}
-                    placeholder="ex: PME, startups, particuliers..."
-                  />
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="colors" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Color Palette</CardTitle>
-                <CardDescription>Primary, secondary, and accent colors</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="space-y-4">
-                  <div className="flex items-center space-x-4">
-                    <div className="flex-1">
-                      <Label htmlFor="primaryColor">Primary Color</Label>
-                      <div className="flex items-center space-x-2">
-                        <Input
-                          id="primaryColor"
-                          type="color"
-                          value={brand.primaryColor || '#6366f1'}
-                          onChange={(e) => handleInputChange('primaryColor', e.target.value)}
-                          className="h-10 w-16"
-                        />
-                        <Input
-                          value={brand.primaryColor || '#6366f1'}
-                          onChange={(e) => handleInputChange('primaryColor', e.target.value)}
-                          placeholder="#6366f1"
-                        />
-                      </div>
-                    </div>
-                    <div
-                      className="h-10 w-10 rounded-md"
-                      style={{ backgroundColor: brand.primaryColor || '#6366f1' }}
-                    />
-                  </div>
-                  
-                  <div className="flex items-center space-x-4">
-                    <div className="flex-1">
-                      <Label htmlFor="secondaryColor">Secondary Color</Label>
-                      <div className="flex items-center space-x-2">
-                        <Input
-                          id="secondaryColor"
-                          type="color"
-                          value={brand.secondaryColor || '#8b5cf6'}
-                          onChange={(e) => handleInputChange('secondaryColor', e.target.value)}
-                          className="h-10 w-16"
-                        />
-                        <Input
-                          value={brand.secondaryColor || '#8b5cf6'}
-                          onChange={(e) => handleInputChange('secondaryColor', e.target.value)}
-                          placeholder="#8b5cf6"
-                        />
-                      </div>
-                    </div>
-                    <div
-                      className="h-10 w-10 rounded-md"
-                      style={{ backgroundColor: brand.secondaryColor || '#8b5cf6' }}
-                    />
-                  </div>
-                  
-                  <div className="flex items-center space-x-4">
-                    <div className="flex-1">
-                      <Label htmlFor="accentColor">Accent Color</Label>
-                      <div className="flex items-center space-x-2">
-                        <Input
-                          id="accentColor"
-                          type="color"
-                          value={brand.accentColor || '#ec4899'}
-                          onChange={(e) => handleInputChange('accentColor', e.target.value)}
-                          className="h-10 w-16"
-                        />
-                        <Input
-                          value={brand.accentColor || '#ec4899'}
-                          onChange={(e) => handleInputChange('accentColor', e.target.value)}
-                          placeholder="#ec4899"
-                        />
-                      </div>
-                    </div>
-                    <div
-                      className="h-10 w-10 rounded-md"
-                      style={{ backgroundColor: brand.accentColor || '#ec4899' }}
-                    />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="typography" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Typography</CardTitle>
-                <CardDescription>Font family and styles</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="fontFamily">Font Family</Label>
-                  <FontPicker 
-                    value={brand.fontFamily || 'Inter, sans-serif'} 
-                    onChange={(val) => handleInputChange('fontFamily', val)}
-                    options={FONT_OPTIONS}
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label>Font Preview</Label>
-                  <div className="border rounded-md p-4">
-                    <p className="text-lg font-semibold" style={{ fontFamily: brand.fontFamily || 'Inter, sans-serif' }}>
-                      {brand.name || 'Your Brand Name'}
-                    </p>
-                    <p className="text-sm text-gray-600" style={{ fontFamily: brand.fontFamily || 'Inter, sans-serif' }}>
-                      {brand.tagline || 'Your brand tagline'}
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="tone" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Tone & Voice</CardTitle>
-                <CardDescription>Brand personality and communication style</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="tone">Ton de communication</Label>
-                  <Input
-                    id="tone"
-                    value={brand.tone || 'professional'}
-                    onChange={(e) => handleInputChange('tone', e.target.value)}
-                    placeholder="ex: professionnel, amical, drôle, inspirant"
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="guidelines">Directives de communication</Label>
-                  <textarea
-                    className="w-full rounded-md border px-3 py-2 text-sm"
-                    value={brand.guidelines || ''}
-                    onChange={(e) => handleInputChange('guidelines', e.target.value)}
-                    placeholder="Décris comment ta marque communique..."
-                    rows={5}
-                  />
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
-      )}
-
-      {/* ======== SAVED BRANDS GALLERY ======== */}
-      {savedBrands.length > 0 && (
-        <div className="mt-10">
-          <h2 className="text-2xl font-bold mb-4">Marques generees ({savedBrands.length})</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {savedBrands.map((b) => (
-              <div
-                key={b.id}
-                className="border rounded-xl p-5 bg-white shadow-sm hover:shadow-md transition-shadow"
-              >
-                {/* Logo + Name */}
-                <div
-                  className="flex items-center gap-3 mb-3 cursor-pointer"
-                  onClick={() => {
-                    updateBrand({
-                      name: b.name || '',
-                      tagline: b.tagline || '',
-                      description: b.description || '',
-                      industry: b.industry || '',
-                      tone: b.tone || '',
-                      primaryColor: b.primaryColor || '',
-                      secondaryColor: b.secondaryColor || '',
-                      accentColor: b.accentColor || '',
-                      fontFamily: b.fontFamily || '',
-                    });
-                  }}
-                >
-                  {b.logo ? (
-                    <img src={b.logo} alt={b.name} className="w-14 h-14 rounded-xl object-contain bg-gray-50 border" />
-                  ) : (
-                    <div className="w-14 h-14 rounded-xl flex items-center justify-center bg-gray-100 border border-dashed border-gray-300 text-gray-400 text-xs text-center">
-                      Pas de logo
-                    </div>
-                  )}
-                  <div>
-                    <h3 className="font-semibold text-base">{b.name}</h3>
-                    {b.tagline && <p className="text-xs text-gray-500 italic">{b.tagline}</p>}
-                  </div>
-                </div>
-
-                {/* Colors */}
-                <div className="flex gap-1.5 mb-2">
-                  {[b.primaryColor, b.secondaryColor, b.accentColor].filter(Boolean).map((c, i) => (
-                    <div key={i} className="flex-1 h-3 rounded-full" style={{ backgroundColor: c }} title={c} />
-                  ))}
-                </div>
-
-                {/* Info */}
-                <div className="text-xs text-gray-500 space-y-0.5 mb-3">
-                  {b.industry && <p>Industrie : {b.industry}</p>}
-                  {b.fontFamily && <p>Police : {b.fontFamily.split(',')[0]}</p>}
-                  <p className="text-gray-400">
-                    {b.createdAt ? new Date(b.createdAt).toLocaleDateString('fr-FR') : ''}
-                  </p>
-                </div>
-
-                {/* Download format selector + Action Buttons */}
-                <div className="flex flex-col gap-1.5 pt-2 border-t border-gray-100">
-                  {/* Download row with format selector */}
-                  {b.logo && (
-                    <div className="flex gap-1">
-                      <select
-                        id={`format-${b.id}`}
-                        defaultValue="png"
-                        className="text-xs rounded-md border border-gray-200 px-1.5 py-1 bg-white flex-1"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <option value="png">PNG</option>
-                        <option value="jpeg">JPEG</option>
-                        <option value="svg">SVG</option>
-                      </select>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          const sel = document.getElementById(`format-${b.id}`) as HTMLSelectElement;
-                          handleDownloadLogo(b.id, b.name, sel?.value || 'png');
-                        }}
-                        className="text-xs px-2 py-1 rounded-md bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors font-medium"
-                      >
-                        Telecharger
-                      </button>
-                    </div>
-                  )}
-
-                  {/* Delete whole brand */}
-                  <div className="flex gap-1">
-                    <button
-                      onClick={(e) => { e.stopPropagation(); deleteBrand(b.id).catch(() => {}); }}
-                      className="flex-1 text-xs px-2 py-1.5 rounded-md bg-red-50 text-red-600 hover:bg-red-100 transition-colors font-medium"
-                    >
-                      Supprimer
-                    </button>
-
-                    {/* IA Modify: show prompt input or button */}
-                    {showPromptFor === b.id ? (
-                      <div className="flex-1 flex gap-1" onClick={(e) => e.stopPropagation()}>
-                        <input
-                          autoFocus
-                          className="flex-1 text-xs rounded-md border border-purple-200 px-1.5 py-1"
-                          placeholder="Decris le logo souhaite..."
-                          value={modifyPrompt}
-                          onChange={(e) => setModifyPrompt(e.target.value)}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') {
-                              handleModifyLogo(b.id, modifyPrompt || undefined);
-                              setModifyPrompt('');
-                            }
-                          }}
-                        />
-                        <button
-                          onClick={() => {
-                            handleModifyLogo(b.id, modifyPrompt || undefined);
-                            setModifyPrompt('');
-                          }}
-                          className="text-xs px-2 py-1 rounded-md bg-purple-500 text-white hover:bg-purple-600 font-medium"
-                        >
-                          OK
-                        </button>
-                      </div>
-                    ) : (
-                      <button
-                        onClick={(e) => { e.stopPropagation(); setShowPromptFor(b.id); setModifyPrompt(''); }}
-                        disabled={modifyingId === b.id}
-                        className={`flex-1 text-xs px-2 py-1.5 rounded-md font-medium transition-colors disabled:opacity-50 ${
-                          b.logo
-                            ? 'bg-purple-50 text-purple-700 hover:bg-purple-100'
-                            : 'bg-green-50 text-green-700 hover:bg-green-100'
-                        }`}
-                      >
-                        {modifyingId === b.id ? 'Generation...' : b.logo ? 'IA Modifier' : 'Generer logo'}
-                      </button>
-                    )}
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {savedBrands.length === 0 && !loading && (
-        <div className="text-center py-12 text-gray-400">
-          <p className="text-lg">Aucune marque générée</p>
-          <p className="text-sm mt-1">Remplis le formulaire et clique sur « Generate Branding »</p>
-        </div>
-      )}
+      <section className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+        {loading ? <div className="space-y-3 p-6">{[1, 2, 3].map((item) => <div key={item} className="h-20 animate-pulse rounded-xl bg-gray-100" />)}</div>
+          : savedBrands.length === 0 ? <div className="flex flex-col items-center px-6 py-20 text-center"><div className="rounded-2xl bg-violet-50 p-4 text-violet-700"><PaletteIcon className="h-8 w-8" /></div><h2 className="mt-5 text-xl font-semibold">Aucune identité créée</h2><p className="mt-2 text-sm text-gray-500">Créez votre première stratégie de marque et son logo.</p><Link href="/branding/create" className="mt-6 rounded-xl bg-violet-700 px-5 py-2.5 font-medium text-white hover:bg-violet-800">Créer mon identité</Link></div>
+          : <div className="overflow-x-auto"><table className="w-full min-w-[900px] text-left text-sm">
+            <thead className="border-b bg-gray-50 text-xs uppercase tracking-wider text-gray-500"><tr><th className="px-6 py-4">Marque</th><th className="px-6 py-4">Secteur</th><th className="px-6 py-4">Palette</th><th className="px-6 py-4">Typographie</th><th className="px-6 py-4">Créée le</th><th className="px-6 py-4 text-right">Actions</th></tr></thead>
+            <tbody className="divide-y divide-gray-100">{savedBrands.map((brand) => <tr key={brand.id} className="transition hover:bg-gray-50/80">
+              <td className="px-6 py-4"><div className="flex items-center gap-3">{brand.logo ? <img src={brand.logo} alt="" className="h-14 w-14 rounded-xl border bg-white object-contain p-1" /> : <div className="grid h-14 w-14 place-items-center rounded-xl bg-gray-100"><PaletteIcon className="h-5 w-5 text-gray-400" /></div>}<div><p className="font-semibold text-gray-900">{brand.name}</p><p className="mt-1 text-xs italic text-gray-500">{brand.tagline || 'Sans signature'}</p></div></div></td>
+              <td className="px-6 py-4 capitalize text-gray-600">{brand.industry || '—'}</td>
+              <td className="px-6 py-4"><div className="flex gap-1">{[brand.primaryColor, brand.secondaryColor, brand.accentColor].filter(Boolean).map((color) => <span key={color} title={color} className="h-7 w-7 rounded-full border border-black/5" style={{ backgroundColor: color }} />)}</div></td>
+              <td className="px-6 py-4 text-gray-600">{brand.fontFamily?.split(',')[0] || '—'}</td>
+              <td className="px-6 py-4 text-gray-600">{formatDate(brand.createdAt)}</td>
+              <td className="px-6 py-4"><div className="flex justify-end gap-1">{brand.logo && <Button variant="ghost" size="icon" title="Télécharger le logo" aria-label={`Télécharger ${brand.name}`} onClick={() => void downloadLogo(brand.id, brand.name)}><DownloadIcon className="h-4 w-4" /></Button>}<Button variant="ghost" size="icon" title="Supprimer" aria-label={`Supprimer ${brand.name}`} disabled={deletingId === brand.id} onClick={() => void remove(brand.id, brand.name)}><TrashIcon className="h-4 w-4 text-red-600" /></Button></div></td>
+            </tr>)}</tbody>
+          </table></div>}
+      </section>
     </div>
   );
 }

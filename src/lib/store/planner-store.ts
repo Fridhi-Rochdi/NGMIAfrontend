@@ -2,7 +2,7 @@
 
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { get, post, put, del } from '@/lib/api';
+import { get as apiGet, post, put, del } from '@/lib/api';
 import type { CalendarItem, CalendarEventItem } from '@/types';
 
 export interface CalendarEvent {
@@ -73,7 +73,7 @@ export const usePlannerStore = create<PlannerStore>()(
       fetchCalendars: async () => {
         set({ loading: true });
         try {
-          const response = await get<CalendarItem[]>('/planner');
+          const response = await apiGet<CalendarItem[]>('/planner');
           set({ calendars: response.data, loading: false });
         } catch (error) {
           set({ loading: false });
@@ -84,7 +84,7 @@ export const usePlannerStore = create<PlannerStore>()(
       fetchCalendarEvents: async (calendarId: string) => {
         set({ loading: true });
         try {
-          const response = await get<CalendarEventItem[]>(`/planner/${calendarId}/events`);
+          const response = await apiGet<CalendarEventItem[]>(`/planner/${calendarId}/events`);
           const mapped: CalendarEvent[] = (response.data as any[]).map((e) => ({
             id: e.id,
             title: e.title,

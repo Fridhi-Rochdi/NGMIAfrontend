@@ -6,6 +6,7 @@ import { get as apiGet, post as apiPost, del as apiDel } from '@/lib/api';
 import type { ContentItem } from '@/types';
 
 export interface ContentForm {
+  businessType: string;
   type: string;
   length: string;
   topic: string;
@@ -30,6 +31,7 @@ interface ContentStore {
 }
 
 const defaultContent: ContentForm = {
+  businessType: 'RESTAURANT',
   type: 'POST',
   length: 'MEDIUM',
   topic: '',
@@ -61,7 +63,21 @@ export const useContentStore = create<ContentStore>()(
           const { content } = get();
 
           // Build a rich prompt that includes all form fields
-          const promptParts: string[] = [`Topic/Product: ${content.topic}`];
+          const businessGuidance: Record<string, string> = {
+            RESTAURANT: 'Focus on the culinary experience, signature dishes, reservations and local discovery.',
+            CAFE: 'Focus on atmosphere, specialty drinks, moments of consumption and visits.',
+            RETAIL: 'Focus on the product benefit, collection, availability and purchase.',
+            EVENT: 'Make date, location, program and registration immediately clear.',
+            REAL_ESTATE: 'Focus on location, property facts, buyer benefits and contact.',
+            HEALTH: 'Use factual, reassuring language and never invent medical promises.',
+            EDUCATION: 'Clarify audience, learning outcomes, duration and registration.',
+            SERVICES: 'Focus on expertise, client problem, process, proof and requesting a quote.',
+          };
+          const promptParts: string[] = [
+            `Business type: ${content.businessType || 'SERVICES'}`,
+            `Business-specific direction: ${businessGuidance[content.businessType || 'SERVICES'] || 'Adapt the message precisely to this professional sector.'}`,
+            `Topic/Product: ${content.topic}`,
+          ];
           if (content.targetAudience) {
             promptParts.push(`Target Audience: ${content.targetAudience}`);
           }

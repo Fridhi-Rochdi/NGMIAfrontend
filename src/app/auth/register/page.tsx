@@ -9,8 +9,15 @@ import { Textarea } from '@/components/ui/Textarea';
 import { Select } from '@/components/ui/Select';
 import { Alert, AlertDescription } from '@/components/ui/Alert';
 import { LogoIcon, ChevronRightIcon, ChevronLeftIcon } from '@/components/icons';
-import { Player } from '@lottiefiles/react-lottie-player';
+import dynamic from 'next/dynamic';
 import Link from 'next/link';
+import { API_URL } from '@/lib/constants';
+import registerAnimation from '../../../../public/lottie/register.json';
+
+const Player = dynamic(
+  () => import('@lottiefiles/react-lottie-player').then((module) => module.Player),
+  { ssr: false },
+);
 
 export default function RegisterPage() {
   const [step, setStep] = useState(1);
@@ -60,7 +67,7 @@ export default function RegisterPage() {
     }
 
     try {
-      const response = await fetch('http://localhost:4000/auth/register', {
+      const response = await fetch(`${API_URL}/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
@@ -93,7 +100,7 @@ export default function RegisterPage() {
     <div className="min-h-screen bg-[#050505] text-white flex flex-col md:flex-row font-sans selection:bg-cyan-500/30">
       
       {/* Left Column - Branding & Lottie */}
-      <div className="hidden md:flex w-5/12 lg:w-1/3 bg-[#0a0a0a] border-r border-white/5 p-8 flex-col justify-between relative overflow-hidden items-center">
+      <div className="flex w-full h-[300px] md:h-auto md:min-h-screen md:w-5/12 lg:w-1/3 bg-[#0a0a0a] border-b md:border-b-0 md:border-r border-white/5 p-6 md:p-8 flex-col justify-between relative overflow-hidden items-center">
         {/* Clean blue/cyan glow, no purple */}
         <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
           <div className="absolute top-[-20%] left-[-20%] w-[140%] h-[140%] bg-blue-900/10 blur-[120px] rounded-full"></div>
@@ -101,23 +108,23 @@ export default function RegisterPage() {
         </div>
         
         <div className="relative z-10 w-full">
-          <Link href="/" className="flex items-center justify-center gap-3 w-full mb-12">
+          <Link href="/" className="flex items-center justify-center gap-3 w-full md:mb-12">
             <LogoIcon className="h-10 w-10" />
             <span className="text-xl font-bold tracking-tighter uppercase">NextGen AI</span>
           </Link>
         </div>
         
-        <div className="relative z-10 flex-1 flex flex-col items-center justify-center w-full max-w-sm">
+        <div className="relative z-10 flex-1 min-h-0 flex flex-col items-center justify-center w-full max-w-sm">
           {/* Lottie Animation instead of text/stars */}
           <Player
             autoplay
             loop
-            src="/lottie/register.json"
-            style={{ height: '400px', width: '400px' }}
+            src={registerAnimation}
+            style={{ height: '100%', width: '100%', maxHeight: '400px' }}
           />
         </div>
         
-        <div className="relative z-10 mt-12 w-full text-center">
+        <div className="relative z-10 md:mt-12 w-full text-center">
           <p className="text-sm text-gray-500">
             Already have an account?{' '}
             <Link href="/auth/login" className="text-white font-bold hover:text-cyan-400 transition-colors uppercase tracking-widest text-xs">
@@ -130,12 +137,6 @@ export default function RegisterPage() {
       {/* Right Column - Form */}
       <div className="w-full md:w-7/12 lg:w-2/3 flex items-center justify-center p-8 sm:p-12 lg:p-24 bg-[#050505]">
         <div className="w-full max-w-xl">
-          {/* Mobile Logo */}
-          <div className="md:hidden flex items-center gap-3 mb-12">
-            <LogoIcon className="h-8 w-8" />
-            <span className="text-xl font-bold tracking-tighter uppercase">NextGen AI</span>
-          </div>
-
           <div className="mb-10">
             <h2 className="text-3xl font-bold mb-2">
               {step === 1 ? 'Create your account' : 'Tell us about your startup'}

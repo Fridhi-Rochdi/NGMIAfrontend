@@ -68,10 +68,17 @@ export const useBrandStore = create<BrandStore>()(
         set({ loading: true });
         try {
           const brand = get().brand;
+          const enrichedDescription = [
+            brand.description,
+            brand.targetAudience ? `Public cible: ${brand.targetAudience}` : '',
+            brand.tone ? `Ton souhaité: ${brand.tone}` : '',
+            brand.guidelines ? `Contraintes de communication: ${brand.guidelines}` : '',
+            brand.tagline ? `Signature proposée par l'utilisateur: ${brand.tagline}` : '',
+          ].filter(Boolean).join('\n');
           const response = await post<BrandItem>('/branding/generate', {
             brandName: brand.name,
             industry: brand.industry,
-            description: brand.description,
+            description: enrichedDescription,
             style: (brand.style || 'modern') as 'modern' | 'classic' | 'playful' | 'luxurious' | 'tech',
             values: brand.values
               ? brand.values.split(',').map(v => v.trim()).filter(v => v.length > 0)

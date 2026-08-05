@@ -67,7 +67,11 @@ export default function QrCodePage() {
           break;
       }
 
-      const response = await api.post(endpoint, payload);
+      const response = await api.post<{
+        success: boolean;
+        data?: { base64: string };
+        error?: string;
+      }>(endpoint, payload);
       if (response.data.success && response.data.data) {
         setQrCodeImage(response.data.data.base64);
       } else {

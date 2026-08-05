@@ -32,9 +32,9 @@ export function Header() {
           <Button variant="ghost" size="icon" className="md:hidden">
             <MenuIcon className="h-6 w-6" />
           </Button>
-          <Link href="/dashboard" className="flex items-center space-x-2">
-            <LogoIcon className="h-8 w-8" />
-            <span className="font-bold text-xl">MarketingAI</span>
+          <Link href="/dashboard" className="group flex items-center gap-2.5" aria-label="NextGen AI — Dashboard">
+            <LogoIcon className="h-9 w-9 transition-transform duration-300 group-hover:scale-105" />
+            <span className="text-xl font-semibold tracking-[-0.04em] text-gray-950">NextGen<span className="ml-1 text-indigo-600">AI</span></span>
           </Link>
         </div>
 

@@ -7,7 +7,7 @@ const publicPaths = ['/auth/login', '/auth/register'];
 const BASE_DOMAIN = process.env.NEXT_PUBLIC_BASE_DOMAIN || 'marketingai.dev';
 const LOCAL_BASE_DOMAIN = 'localhost';
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const { pathname, hostname } = request.nextUrl;
 
   // --- Subdomain detection for generated websites ---

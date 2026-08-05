@@ -10,11 +10,6 @@ import { Alert, AlertDescription } from '@/components/ui/Alert';
 import { SparklesIcon, DownloadIcon, ImageIcon, TrashIcon, CopyIcon, CheckIcon, MenuIcon, QrCodeIcon, UploadIcon } from '@/components/icons';
 import { post, get, del, upload } from '@/lib/api';
 
-function getTenantSlug(): string | null {
-  if (typeof window === 'undefined') return null;
-  try { const u = JSON.parse(localStorage.getItem('user') || '{}'); return u?.tenant?.slug ?? null; } catch { return null; }
-}
-
 // ==================== TYPES ====================
 
 type BusinessType = 'RESTAURANT' | 'CAFE' | 'BAR' | 'BAKERY' | 'PIZZERIA' | 'SUSHI' | 'BURGER' | 'SALAD' | 'SEAFOOD' | 'STEAKHOUSE';
@@ -276,15 +271,13 @@ export default function MarketingPage() {
     setLoading(true);
     try {
       const validCategories = menuCategories.filter(c => c.name && c.items.some(i => i.name));
-      const response = await post<Menu>('/menus/generate', {
+      const response = await post<Menu>('/ai-engine/generate-menu', {
         businessName: menuForm.businessName, businessType: menuForm.businessType,
         description: menuForm.description, template: menuForm.template,
-        fontFamily: menuForm.fontFamily,
-        primaryColor: menuForm.primaryColor, secondaryColor: menuForm.secondaryColor, accentColor: menuForm.accentColor,
+        fontFamily: menuForm.fontFamily, colors: { primary: menuForm.primaryColor, secondary: menuForm.secondaryColor, accent: menuForm.accentColor },
         categories: validCategories,
-        images: menuImages.map(img => ({ url: img.url, name: img.name })),
       });
-      setMenus([response.data, ...menus]); setSelectedMenu(response.data); setMenuImages([]);
+      setMenus([response.data, ...menus]); setSelectedMenu(response.data);
       showMessage('success', 'Menu généré avec succès!');
     } catch { showMessage('error', 'Erreur lors de la génération'); }
     setLoading(false);
@@ -333,14 +326,12 @@ export default function MarketingPage() {
     if (!posterForm.businessName || !posterForm.title) { showMessage('error', 'Remplissez le nom du commerce et le titre'); return; }
     setLoading(true);
     try {
-      const response = await post<Poster>('/posters/generate', {
+      const response = await post<Poster>('/ai-engine/generate-poster', {
         businessName: posterForm.businessName, businessType: posterForm.businessType,
         title: posterForm.title, description: posterForm.description,
         template: posterForm.template, size: posterForm.size,
         fontFamily: posterForm.fontFamily,
-        primaryColor: posterForm.primaryColor,
-        secondaryColor: posterForm.secondaryColor,
-        accentColor: posterForm.accentColor,
+        colors: { primary: posterForm.primaryColor, secondary: posterForm.secondaryColor, accent: posterForm.accentColor },
         sections: posterSections,
       });
       setPosters([response.data, ...posters]); setSelectedPoster(response.data);
@@ -359,30 +350,6 @@ export default function MarketingPage() {
 
   const deletePoster = async (id: string) => {
     try { await del(`/posters/${id}`); setPosters(posters.filter(p => p.id !== id)); if (selectedPoster?.id === id) setSelectedPoster(null); showMessage('success', 'Poster supprimé'); } catch { showMessage('error', 'Erreur'); }
-  };
-
-  const downloadPoster = (id: string, name: string, format: string) => {
-    const token = localStorage.getItem('token');
-    const slug = getTenantSlug();
-    fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'}/posters/${id}/download?format=${format}`, {
-      headers: { 'Authorization': `Bearer ${token}`, 'X-Tenant-Slug': slug || '' },
-    })
-      .then(res => res.blob())
-      .then(blob => {
-        const ext = format === 'jpeg' ? 'jpg' : format;
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a'); a.href = url; a.download = `poster-${name.replace(/[^a-z0-9]/gi, '-').toLowerCase()}.${ext}`; a.click();
-        URL.revokeObjectURL(url);
-      })
-      .catch(() => showMessage('error', 'Erreur telechargement'));
-  };
-
-  const generatePosterQr = async (id: string) => {
-    try {
-      const response = await post<{ qrCodeUrl: string }>(`/posters/${id}/generate-qr`, {});
-      showMessage('success', 'QR code genere !');
-      setPosters(posters.map(p => p.id === id ? { ...p, qrCodeUrl: response.data.qrCodeUrl } : p));
-    } catch { showMessage('error', 'Erreur QR code'); }
   };
 
   // ==================== QR CODE FUNCTIONS ====================
@@ -567,12 +534,10 @@ export default function MarketingPage() {
             <Card>
               <CardHeader><CardTitle>Preview: {selectedMenu.name}</CardTitle></CardHeader>
               <CardContent>
-                {selectedMenu.html ? (
-                  <iframe srcDoc={selectedMenu.html} className="w-full h-[600px] border rounded bg-white" title="Menu Preview" sandbox="allow-same-origin allow-scripts" />
-                ) : selectedMenu.imageUrl ? (
-                  <img src={selectedMenu.imageUrl} alt={selectedMenu.name} className="w-full max-h-[600px] object-contain rounded-lg border bg-white" />
+                {selectedMenu.vercelUrl ? (
+                  <iframe src={selectedMenu.vercelUrl} className="w-full h-[600px] border rounded" title="Menu Preview" />
                 ) : (
-                  <div className="flex items-center justify-center h-[300px] bg-muted rounded"><p className="text-muted-foreground">Generez le menu pour voir l'apercu</p></div>
+                  <div className="flex items-center justify-center h-[300px] bg-muted rounded"><p className="text-muted-foreground">Publiez le menu pour voir l'aperçu</p></div>
                 )}
               </CardContent>
             </Card>
@@ -662,51 +627,20 @@ export default function MarketingPage() {
             <Card>
               <CardHeader><CardTitle>Mes Posters</CardTitle></CardHeader>
               <CardContent className="space-y-3 max-h-[600px] overflow-y-auto">
-                {posters.length === 0 ? <p className="text-muted-foreground text-center py-8">Aucun poster cree</p> : posters.map(poster => (
+                {posters.length === 0 ? <p className="text-muted-foreground text-center py-8">Aucun poster créé</p> : posters.map(poster => (
                   <div key={poster.id} className={`p-3 rounded-lg border cursor-pointer transition-colors ${selectedPoster?.id === poster.id ? 'border-primary bg-primary/5' : 'hover:border-primary/50'}`} onClick={() => setSelectedPoster(poster)}>
                     <div className="flex items-center justify-between">
-                      <div><p className="font-medium">{poster.name}</p><p className="text-sm text-muted-foreground">{poster.title} - {poster.status}</p></div>
+                      <div><p className="font-medium">{poster.name}</p><p className="text-sm text-muted-foreground">{poster.title} • {poster.status}</p></div>
                       <div className="flex gap-1">
-                        {poster.qrCodeUrl && <img src={poster.qrCodeUrl} alt="QR" className="w-8 h-8 rounded" />}
+                        {poster.status === 'DRAFT' && <Button variant="ghost" size="sm" onClick={e => { e.stopPropagation(); publishPoster(poster.id); }}>Publier</Button>}
+                        <Button variant="ghost" size="sm" onClick={e => { e.stopPropagation(); deletePoster(poster.id); }}><TrashIcon className="h-4 w-4 text-destructive" /></Button>
                       </div>
-                    </div>
-                    <div className="flex gap-1 mt-2 pt-2 border-t border-border" onClick={e => e.stopPropagation()}>
-                      <select id={`fmt-${poster.id}`} className="text-xs rounded border px-1 py-1 bg-background w-16">
-                        <option value="html">HTML</option>
-                        <option value="png">PNG</option>
-                        <option value="jpeg">JPEG</option>
-                      </select>
-                      <button onClick={() => { const s = document.getElementById(`fmt-${poster.id}`) as HTMLSelectElement; downloadPoster(poster.id, poster.name, s?.value || 'html'); }} className="text-xs px-2 py-1 rounded bg-blue-50 text-blue-700 hover:bg-blue-100">Telecharger</button>
-                      <button onClick={() => generatePosterQr(poster.id)} className="text-xs px-2 py-1 rounded bg-green-50 text-green-700 hover:bg-green-100">QR Code</button>
-                      {poster.status === 'DRAFT' && <Button variant="ghost" size="sm" onClick={e => { e.stopPropagation(); publishPoster(poster.id); }}>Publier</Button>}
-                      <Button variant="ghost" size="sm" onClick={e => { e.stopPropagation(); deletePoster(poster.id); }}><TrashIcon className="h-4 w-4 text-destructive" /></Button>
                     </div>
                   </div>
                 ))}
               </CardContent>
             </Card>
           </div>
-
-          {/* Poster Preview */}
-          {selectedPoster && (
-            <Card className="mt-4">
-              <CardHeader><CardTitle>Apercu : {selectedPoster.name}</CardTitle></CardHeader>
-              <CardContent>
-                {selectedPoster.imageUrl ? (
-                  <img src={selectedPoster.imageUrl} alt={selectedPoster.name} className="w-full max-h-[500px] object-contain rounded-lg border" />
-                ) : selectedPoster.content ? (
-                  <iframe
-                    srcDoc={selectedPoster.content}
-                    className="w-full h-[600px] border rounded-lg"
-                    title="Poster Preview"
-                    sandbox="allow-same-origin allow-scripts"
-                  />
-                ) : (
-                  <p className="text-muted-foreground text-center py-8">Aucun apercu disponible</p>
-                )}
-              </CardContent>
-            </Card>
-          )}
         </TabsContent>
 
         {/* ==================== QR CODE TAB ==================== */}

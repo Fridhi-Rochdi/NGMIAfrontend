@@ -2,15 +2,22 @@
 
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { get, post, del } from '@/lib/api';
-import type { ImageItem } from '@/types';
+import { get as apiGet, post, del } from '@/lib/api';
+import type { ImageItem, ImageBusinessType, ImageTemplate } from '@/types';
 
 export interface ImageForm {
+  businessName: string;
+  businessType: ImageBusinessType;
+  description: string;
+  template: ImageTemplate;
+  primaryColor: string;
+  secondaryColor: string;
+  accentColor: string;
+  fontFamily: string;
   prompt: string;
   style: string;
   size: string;
   aiModel: string;
-  negativePrompt: string;
 }
 
 interface ImagesStore {
@@ -28,11 +35,18 @@ interface ImagesStore {
 }
 
 const defaultImage: ImageForm = {
+  businessName: '',
+  businessType: 'OTHER',
+  description: '',
+  template: 'modern',
+  primaryColor: '#3b82f6',
+  secondaryColor: '#1e3a8a',
+  accentColor: '#22c55e',
+  fontFamily: 'Inter',
   prompt: '',
   style: 'realistic',
   size: '1024x1024',
   aiModel: 'dall-e-3',
-  negativePrompt: '',
 };
 
 const sizeToAspectRatio = (size: string): 'SQUARE' | 'LANDSCAPE' | 'PORTRAIT' => {
@@ -62,7 +76,17 @@ export const useImagesStore = create<ImagesStore>()(
         try {
           const { image } = get();
           const response = await post<ImageItem>('/images/generate', {
-            prompt: image.prompt,
+            businessName: image.businessName,
+            businessType: image.businessType,
+            description: image.description || undefined,
+            template: image.template,
+            colors: {
+              primary: image.primaryColor,
+              secondary: image.secondaryColor,
+              accent: image.accentColor,
+            },
+            fontFamily: image.fontFamily,
+            prompt: image.prompt || undefined,
             aspectRatio: sizeToAspectRatio(image.size),
             style: image.style,
           });
@@ -80,7 +104,7 @@ export const useImagesStore = create<ImagesStore>()(
       fetchImages: async () => {
         set({ loading: true });
         try {
-          const response = await get<ImageItem[]>('/images');
+          const response = await apiGet<ImageItem[]>('/images');
           set({ generatedImages: response.data, loading: false });
         } catch (error) {
           set({ loading: false });
