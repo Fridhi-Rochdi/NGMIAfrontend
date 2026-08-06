@@ -8,7 +8,7 @@ import { Select } from '@/components/ui/Select';
 import { Textarea } from '@/components/ui/Textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/Tabs';
 import { Alert, AlertDescription } from '@/components/ui/Alert';
-import { SparklesIcon, CopyIcon, TrashIcon, CheckCircleIcon, CalendarIcon } from '@/components/icons';
+import { SparklesIcon, CopyIcon, TrashIcon, CheckCircleIcon, CalendarIcon, ImageIcon } from '@/components/icons';
 import { useContentStore } from '@/lib/store/content-store';
 import type { ContentItem } from '@/types';
 
@@ -78,6 +78,10 @@ export default function ContentPage() {
 
   const handleInputChange = (field: keyof typeof content, value: string) => {
     updateContent({ [field]: value });
+  };
+
+  const handleToggleImage = () => {
+    updateContent({ generateImage: !content.generateImage });
   };
 
   const handleBusinessTypeChange = (value: string) => {
@@ -266,11 +270,26 @@ export default function ContentPage() {
                 </div>
               </div>
 
-              <div className="border-t border-gray-100 bg-gray-50 px-8 py-5 flex justify-end">
+              <div className="border-t border-gray-100 bg-gray-50 px-8 py-5 flex items-center justify-between">
+                <label className="flex items-center gap-3 cursor-pointer select-none" onClick={handleToggleImage}>
+                  <div className="relative">
+                    <input
+                      type="checkbox"
+                      checked={content.generateImage || false}
+                      onChange={handleToggleImage}
+                      className="sr-only peer"
+                    />
+                    <div className="w-10 h-5 bg-gray-300 rounded-full peer-checked:bg-indigo-600 transition-colors after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-transform peer-checked:after:translate-x-5" />
+                  </div>
+                  <span className="text-sm font-medium text-gray-700 flex items-center gap-1.5">
+                    <ImageIcon className="h-4 w-4 text-indigo-500" />
+                    Generate image with content
+                  </span>
+                </label>
                 <Button 
                   onClick={handleGenerate} 
                   disabled={isGenerating} 
-                  className="rounded-xl h-12 px-8 bg-indigo-600 hover:bg-indigo-700 text-white font-bold shadow-md transition-all hover:shadow-lg w-full md:w-auto"
+                  className="rounded-xl h-12 px-8 bg-indigo-600 hover:bg-indigo-700 text-white font-bold shadow-md transition-all hover:shadow-lg"
                 >
                   {isGenerating ? (
                     <>
@@ -367,6 +386,19 @@ function ContentItemCard({
 
   return (
     <div className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden flex flex-col hover:border-indigo-200 transition-colors">
+      {item.imageUrl && (
+        <div className="relative w-full h-48 overflow-hidden bg-gray-100">
+          <img
+            src={item.imageUrl}
+            alt={item.title}
+            className="w-full h-full object-cover"
+            loading="lazy"
+          />
+          <span className="absolute top-3 right-3 px-2 py-0.5 bg-black/50 text-white text-xs rounded-full backdrop-blur-sm">
+            AI Generated
+          </span>
+        </div>
+      )}
       <div className="border-b border-gray-100 bg-gray-50/50 px-6 py-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <span className="px-2.5 py-1 bg-indigo-100 text-indigo-700 text-xs font-bold rounded-lg uppercase tracking-wider">

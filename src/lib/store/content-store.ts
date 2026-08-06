@@ -14,6 +14,7 @@ export interface ContentForm {
   tone: string;
   hashtags: string;
   callToAction: string;
+  generateImage: boolean;
 }
 
 interface ContentStore {
@@ -39,6 +40,7 @@ const defaultContent: ContentForm = {
   tone: 'professional',
   hashtags: '',
   callToAction: '',
+  generateImage: false,
 };
 
 export const useContentStore = create<ContentStore>()(
@@ -97,6 +99,7 @@ export const useContentStore = create<ContentStore>()(
             tone: content.tone,
             length: content.length,
             keywords: content.hashtags ? content.hashtags.split(',').map((k) => k.trim()) : [],
+            generateImage: content.generateImage,
           });
 
           // Extract the actual item from the nested response

@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/Button';
-import { MenuIcon, SparklesIcon, CalendarIcon, MessageSquareIcon, UsersIcon, SettingsIcon, HomeIcon, ImageIcon, VideoIcon, GlobeIcon, QrCodeIcon } from '@/components/icons';
+import { MenuIcon, SparklesIcon, CalendarIcon, MessageSquareIcon, UsersIcon, SettingsIcon, HomeIcon, ImageIcon, VideoIcon, PaletteIcon } from '@/components/icons';
 import { useAuth } from '@/hooks/useAuth';
 
 export function Sidebar() {
@@ -12,17 +12,17 @@ export function Sidebar() {
   const { user } = useAuth();
 
   const navItems = [
-    { href: '/dashboard', label: 'Dashboard', icon: HomeIcon, showFor: ['ADMIN', 'OWNER', 'MEMBER'] },
+    { href: '/dashboard', label: 'Dashboard', icon: HomeIcon, showFor: ['ADMIN', 'OWNER', 'USER'] },
     { href: '/branding', label: 'Branding', icon: SparklesIcon, showFor: ['ADMIN', 'OWNER'] },
-    { href: '/content', label: 'Content', icon: MessageSquareIcon, showFor: ['ADMIN', 'OWNER', 'MEMBER'] },
-    { href: '/images', label: 'Images', icon: ImageIcon, showFor: ['ADMIN', 'OWNER', 'MEMBER'] },
-    { href: '/reels', label: 'Reels', icon: VideoIcon, showFor: ['ADMIN', 'OWNER', 'MEMBER'] },
-    { href: '/planner', label: 'Planner', icon: CalendarIcon, showFor: ['ADMIN', 'OWNER', 'MEMBER'] },
-    { href: '/websites', label: 'Websites', icon: GlobeIcon, showFor: ['ADMIN', 'OWNER', 'MEMBER'] },
-    { href: '/marketing', label: 'Marketing', icon: SparklesIcon, showFor: ['ADMIN', 'OWNER', 'MEMBER'] },
+    { href: '/content', label: 'Content', icon: MessageSquareIcon, showFor: ['ADMIN', 'OWNER', 'USER'] },
+    { href: '/menu', label: 'Menu', icon: MenuIcon, showFor: ['ADMIN', 'OWNER', 'USER'] },
+    { href: '/poster', label: 'Poster', icon: PaletteIcon, showFor: ['ADMIN', 'OWNER', 'USER'] },
+    { href: '/images', label: 'Images', icon: ImageIcon, showFor: ['ADMIN', 'OWNER', 'USER'] },
+    { href: '/reels', label: 'Reels', icon: VideoIcon, showFor: ['ADMIN', 'OWNER', 'USER'] },
+    { href: '/planner', label: 'Planner', icon: CalendarIcon, showFor: ['ADMIN', 'OWNER', 'USER'] },
     { href: '/social', label: 'Social', icon: UsersIcon, showFor: ['ADMIN', 'OWNER'] },
     { href: '/settings', label: 'Settings', icon: SettingsIcon, showFor: ['ADMIN', 'OWNER'] },
-  ].filter(item => item.showFor.includes(user?.role || 'MEMBER'));
+  ].filter(item => item.showFor.includes(user?.role || 'USER'));
 
 
   return (

@@ -1,3 +1,5 @@
+import { getAuthToken } from './auth-token';
+
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
 
 interface ApiResponse<T> {
@@ -25,7 +27,7 @@ function buildHeaders(): Record<string, string> {
   };
 
   if (typeof window !== 'undefined') {
-    const token = localStorage.getItem('token');
+    const token = getAuthToken();
     if (token) {
       headers['Authorization'] = `Bearer ${token}`;
     }

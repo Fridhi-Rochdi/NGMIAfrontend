@@ -40,6 +40,7 @@ export interface ContentItem {
   tone: string;
   length: string;
   body?: string;
+  imageUrl?: string | null;
   status: 'DRAFT' | 'GENERATED' | 'PUBLISHED' | 'ARCHIVED';
   keywords?: string[];
   createdAt?: string;
@@ -51,7 +52,6 @@ export interface BrandItem {
   id: string;
   name: string;
   slug?: string;
-  logo?: string;
   tagline?: string;
   description?: string;
   primaryColor?: string;
@@ -69,29 +69,11 @@ export interface BrandItem {
 }
 
 // Image types
-export type ImageBusinessType =
-  | 'RESTAURANT' | 'CAFE' | 'BAR' | 'BAKERY' | 'PIZZERIA'
-  | 'SUSHI' | 'FAST_FOOD' | 'BURGER' | 'ICE_CREAM'
-  | 'RETAIL' | 'HEALTH' | 'EDUCATION' | 'REAL_ESTATE'
-  | 'EVENT' | 'TECH' | 'OTHER';
-
-export type ImageTemplate = 'modern' | 'classic' | 'minimal' | 'bold' | 'elegant' | 'rustic';
-
 export interface ImageItem {
   id: string;
   prompt: string;
-  businessName?: string;
-  businessType?: ImageBusinessType;
-  description?: string;
-  template?: ImageTemplate;
-  primaryColor?: string;
-  secondaryColor?: string;
-  accentColor?: string;
-  fontFamily?: string;
-  enhancedPrompt?: string;
   aspectRatio?: string;
   style?: string;
-  url?: string;
   imageUrl?: string;
   status: 'PENDING' | 'GENERATING' | 'COMPLETED' | 'FAILED';
   createdAt?: string;
