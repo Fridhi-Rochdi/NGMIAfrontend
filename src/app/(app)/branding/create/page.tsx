@@ -176,7 +176,10 @@ export default function BrandingPage() {
     })
       .then(res => res.blob())
       .then(blob => {
-        const ext = format === 'svg' ? 'svg' : format === 'jpeg' ? 'jpg' : 'png';
+        const ext = blob.type.includes('svg') ? 'svg'
+          : blob.type.includes('png') ? 'png'
+            : blob.type.includes('webp') ? 'webp'
+              : 'jpg';
         const downloadUrl = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = downloadUrl;

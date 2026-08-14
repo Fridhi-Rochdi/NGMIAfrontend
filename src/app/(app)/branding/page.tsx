@@ -42,10 +42,15 @@ export default function BrandingLibraryPage() {
         headers: { Authorization: `Bearer ${token}`, 'X-Tenant-Slug': tenantSlug() },
       });
       if (!response.ok) throw new Error('download failed');
-      const url = URL.createObjectURL(await response.blob());
+      const blob = await response.blob();
+      const extension = blob.type.includes('svg') ? 'svg'
+        : blob.type.includes('png') ? 'png'
+          : blob.type.includes('webp') ? 'webp'
+            : 'jpg';
+      const url = URL.createObjectURL(blob);
       const anchor = document.createElement('a');
       anchor.href = url;
-      anchor.download = `logo-${name.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}.png`;
+      anchor.download = `logo-${name.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}.${extension}`;
       anchor.click();
       window.setTimeout(() => URL.revokeObjectURL(url), 1000);
     } catch { setError('Le téléchargement du logo a échoué.'); }

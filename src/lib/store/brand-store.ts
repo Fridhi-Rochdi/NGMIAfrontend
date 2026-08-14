@@ -16,6 +16,7 @@ interface BrandForm {
   tagline: string;
   description: string;
   tone: string;
+  style: string;
   industry: string;
   targetAudience: string;
   values: string;
@@ -29,6 +30,8 @@ interface BrandStore {
   generateBranding: () => Promise<void>;
   fetchBrands: () => Promise<void>;
   deleteBrand: (id: string) => Promise<void>;
+  deleteBrandLogo: (id: string) => Promise<void>;
+  modifyBrandLogo: (id: string, payload?: { logoDescription?: string }) => Promise<void>;
   loading: boolean;
 }
 
@@ -46,6 +49,7 @@ export const useBrandStore = create<BrandStore>()(
         tagline: '',
         description: '',
         tone: 'professional',
+        style: 'modern',
         industry: '',
         targetAudience: '',
         values: '',
@@ -84,6 +88,7 @@ export const useBrandStore = create<BrandStore>()(
               accentColor: data.accentColor || state.brand.accentColor,
               fontFamily: data.fontFamily || state.brand.fontFamily,
               tone: data.tone || state.brand.tone,
+              style: data.style || state.brand.style,
               industry: data.industry || state.brand.industry,
               values: typeof data.values === 'string' ? data.values : state.brand.values,
               guidelines: data.guidelines || state.brand.guidelines,
@@ -113,6 +118,32 @@ export const useBrandStore = create<BrandStore>()(
           await del(`/branding/${id}`);
           set((state) => ({
             savedBrands: state.savedBrands.filter((b) => b.id !== id),
+          }));
+        } catch (error) {
+          throw error;
+        }
+      },
+
+      deleteBrandLogo: async (id: string) => {
+        try {
+          const response = await del<BrandItem>(`/branding/${id}/logo`);
+          const updated = response.data;
+          set((state) => ({
+            savedBrands: state.savedBrands.map((brand) => brand.id === id ? updated : brand),
+            brand: state.brand.name === updated.name ? { ...state.brand, logo: '' } : state.brand,
+          }));
+        } catch (error) {
+          throw error;
+        }
+      },
+
+      modifyBrandLogo: async (id: string, payload?: { logoDescription?: string }) => {
+        try {
+          const response = await put<BrandItem>(`/branding/${id}/logo`, payload || {});
+          const updated = response.data;
+          set((state) => ({
+            savedBrands: state.savedBrands.map((brand) => brand.id === id ? updated : brand),
+            brand: state.brand.name === updated.name ? { ...state.brand, logo: updated.logo || '' } : state.brand,
           }));
         } catch (error) {
           throw error;
